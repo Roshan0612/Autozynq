@@ -19,10 +19,11 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import ModeToggle from "../global/ModeToggle";
 
 const sidebarItems = [
   { name: "Dashboard", icon: Home, href: "/dashboard" },
-  { name: "Settings", icon: Settings, href: "/dashboard/settings" },
+  { name: "Settings", icon: Settings, href: "/settings" },
   { name: "Connections", icon: Plug, href: "/dashboard/connections" },
   { name: "Workflow", icon: Workflow, href: "/dashboard/workflow" },
   { name: "Payment", icon: CreditCard, href: "/dashboard/payment" },
@@ -60,6 +61,9 @@ export default function Sidebar() {
             </Tooltip>
           );
         })}
+        <div className="mt-auto pt-2 w-full flex justify-center">
+          <ModeToggle />
+        </div>
       </aside>
     </TooltipProvider>
   );
