@@ -24,8 +24,8 @@ async function main() {
   console.log("✅ Test 1: Create valid workflow");
   const validDefinition: WorkflowDefinition = {
     nodes: [
-      { id: "trigger1", type: "webhook.trigger", config: { path: "/hook" } },
-      { id: "action1", type: "slack.action.send", config: { channel: "#alerts", message: "Hello!" } },
+      { id: "trigger1", type: "gmail.trigger.newEmail", config: { label: "Test Trigger" } },
+      { id: "action1", type: "slack.action.sendMessage", config: { channel: "#alerts", message: "New email received!" } },
     ],
     edges: [{ from: "trigger1", to: "action1" }],
   };
@@ -49,9 +49,9 @@ async function main() {
   console.log("✅ Test 2: Create workflow with multiple actions");
   const chainDefinition: WorkflowDefinition = {
     nodes: [
-      { id: "trigger1", type: "gmail.trigger.newEmail", config: {} },
-      { id: "action1", type: "slack.action.send", config: { channel: "#inbox" } },
-      { id: "action2", type: "notion.action.createPage", config: { database: "Tasks" } },
+      { id: "trigger1", type: "gmail.trigger.newEmail", config: { label: "Inbox Monitor" } },
+      { id: "action1", type: "slack.action.sendMessage", config: { channel: "#inbox", message: "Email notification" } },
+      { id: "action2", type: "slack.action.sendMessage", config: { channel: "#archive", message: "Email archived" } },
     ],
     edges: [
       { from: "trigger1", to: "action1" },
@@ -77,9 +77,9 @@ async function main() {
   console.log("✅ Test 3: Create workflow with branching");
   const branchDefinition: WorkflowDefinition = {
     nodes: [
-      { id: "trigger1", type: "stripe.trigger.payment", config: {} },
-      { id: "action1", type: "email.action.send", config: { to: "admin@example.com" } },
-      { id: "action2", type: "analytics.action.track", config: { event: "payment_received" } },
+      { id: "trigger1", type: "gmail.trigger.newEmail", config: { label: "Multi-channel" } },
+      { id: "action1", type: "slack.action.sendMessage", config: { channel: "#team", message: "New email" } },
+      { id: "action2", type: "slack.action.sendMessage", config: { channel: "#notifications", message: "Email alert" } },
     ],
     edges: [
       { from: "trigger1", to: "action1" },

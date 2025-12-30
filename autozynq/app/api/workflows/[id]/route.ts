@@ -122,6 +122,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     const validationResponse = mapValidationError(error);
     if (validationResponse) return validationResponse;
 
+    
     console.error("Failed to update workflow", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

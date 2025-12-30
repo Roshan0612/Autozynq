@@ -1,4 +1,5 @@
 import { workflowDefinitionSchema, type WorkflowDefinition, type WorkflowNode } from "./schema";
+import { getNode, hasNode } from "../nodes/registry";
 
 // Using a custom error class keeps API handlers from leaking Zod internals to clients.
 export class WorkflowValidationError extends Error {
@@ -11,9 +12,6 @@ export class WorkflowValidationError extends Error {
   }
 }
 
-const isTriggerNode = (node: WorkflowNode) =>
-  node.type.includes(".trigger.") || node.type.endsWith(".trigger");
-
 export function validateWorkflowDefinition(definition: unknown): WorkflowDefinition {
   const parsed = workflowDefinitionSchema.safeParse(definition);
   if (!parsed.success) {
@@ -24,6 +22,7 @@ export function validateWorkflowDefinition(definition: unknown): WorkflowDefinit
   const workflow = parsed.data;
   const issues: string[] = [];
 
+  // Validate node IDs are unique
   const nodeIds = new Set<string>();
   for (const node of workflow.nodes) {
     if (nodeIds.has(node.id)) {
@@ -33,7 +32,34 @@ export function validateWorkflowDefinition(definition: unknown): WorkflowDefinit
     }
   }
 
-  const triggerNodes = workflow.nodes.filter(isTriggerNode);
+  // Validate node types exist in registry and configs are valid
+  const triggerNodes: WorkflowNode[] = [];
+  for (const node of workflow.nodes) {
+    // Check if node type is registered
+    if (!hasNode(node.type)) {
+      issues.push(`Unknown node type: ${node.type}`);
+      continue; // Skip further validation for this node
+    }
+
+    // Get node definition from registry
+    const nodeDef = getNode(node.type);
+
+    // Validate node config against schema
+    const configValidation = nodeDef.configSchema.safeParse(node.config);
+    if (!configValidation.success) {
+      const configErrors = configValidation.error.errors
+        .map((err) => `${err.path.join(".")}: ${err.message}`)
+        .join(", ");
+      issues.push(`Node ${node.id} (${node.type}) has invalid config: ${configErrors}`);
+    }
+
+    // Track trigger nodes using registry category
+    if (nodeDef.category === "trigger") {
+      triggerNodes.push(node);
+    }
+  }
+
+  // Ensure exactly one trigger
   if (triggerNodes.length !== 1) {
     issues.push(
       triggerNodes.length === 0
@@ -42,6 +68,7 @@ export function validateWorkflowDefinition(definition: unknown): WorkflowDefinit
     );
   }
 
+  // Validate edge references
   for (const edge of workflow.edges) {
     if (!nodeIds.has(edge.from)) {
       issues.push(`Edge 'from' references missing node: ${edge.from}`);
