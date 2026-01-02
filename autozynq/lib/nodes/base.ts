@@ -7,6 +7,9 @@ export interface NodeContext {
   config: unknown; // Node-specific configuration from workflow JSON
   auth: Record<string, any>; // OAuth tokens / API credentials (mock for now)
   executionId: string; // Current execution ID for logging/debugging
+  workflowId: string; // Workflow ID for reference
+  userId?: string; // User ID who owns the execution
+  stepIndex: number; // Current step number in execution
 }
 
 // Base interface that all automation nodes must implement.

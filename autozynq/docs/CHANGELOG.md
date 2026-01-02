@@ -2,6 +2,20 @@
 
 This file tracks notable changes, issues, and resolutions. The README is auto-generated from this changelog.
 
+## 2026-01-02 — Execution Engine v1
+- **Implemented Execution Engine v1**: Linear, deterministic workflow execution
+  - Core engine (`lib/execution/engine.ts`) with `runWorkflow()` function
+  - Topological sort for DAG resolution (Kahn's algorithm)
+  - Sequential node execution with full context passing
+  - Progressive execution state tracking with steps logging
+  - Error handling with detailed failure information
+- **Database Updates**: Extended Execution model with `result`, `error`, `steps`, `userId` fields
+- **NodeContext Enhancement**: Added `workflowId`, `userId`, `stepIndex` fields
+- **API Integration**: Created `/api/workflows/[id]/execute` endpoint for manual workflow execution
+- **Testing**: Comprehensive test script validates end-to-end execution flow
+- **Documentation**: Full README in `lib/execution/` with architecture details
+- **Migration**: Applied `20260102154452_execution_engine_v1` migration
+
 ## 2025-12-22 — Day 1 Foundation
 - Init Next.js App Router project
 - Added NextAuth (GitHub provider) and session context

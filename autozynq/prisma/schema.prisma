@@ -91,9 +91,13 @@ model Workflow {
 model Execution {
   id         String          @id @default(cuid())
   workflowId String
+  userId     String?
   status     ExecutionStatus @default(PENDING)
   startedAt  DateTime        @default(now())
   finishedAt DateTime?
+  result     Json?
+  error      Json?
+  steps      Json?
 
   workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
 
