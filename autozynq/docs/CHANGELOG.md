@@ -2,6 +2,28 @@
 
 This file tracks notable changes, issues, and resolutions. The README is auto-generated from this changelog.
 
+## 2026-01-03 — Phase 2: Webhook Trigger Infrastructure
+- **Implemented Webhook Trigger System**: External event-driven workflow execution
+  - Created `WorkflowTrigger` model with trigger registration and lifecycle management
+  - Implemented trigger service layer (`lib/triggers/service.ts`)
+  - Built webhook API endpoint (`/api/webhooks/[triggerId]`) for external events
+  - Added workflow activation logic with automatic trigger registration
+  - Trigger types enum: WEBHOOK, SCHEDULE, EMAIL (extensible)
+- **Key Features**:
+  - Automatic trigger registration on workflow activation
+  - Public webhook URLs generated for each trigger node
+  - Trigger validation (active status, workflow status)
+  - Clean separation: webhook handler → trigger service → execution engine
+  - GET endpoint for trigger info/debugging
+- **API Endpoints**:
+  - POST `/api/workflows/[id]/activate` - Activate workflow & register triggers
+  - DELETE `/api/workflows/[id]/activate` - Deactivate workflow & disable triggers
+  - POST `/api/webhooks/[triggerId]` - Receive webhook events
+  - GET `/api/webhooks/[triggerId]` - Get trigger information
+- **Testing**: Comprehensive test script for full trigger lifecycle
+- **Documentation**: Complete Phase 2 guide with examples and architecture
+- **Migration**: Applied `20260103054011_add_workflow_triggers` migration
+
 ## 2026-01-02 — Execution Engine v1
 - **Implemented Execution Engine v1**: Linear, deterministic workflow execution
   - Core engine (`lib/execution/engine.ts`) with `runWorkflow()` function
