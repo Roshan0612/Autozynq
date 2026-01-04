@@ -3,7 +3,8 @@ import {
   getTriggerSubscriptionByPath,
   updateSubscriptionAfterExecution,
 } from "@/lib/triggers/subscriptions";
-import { runWorkflow } from "@/lib/execution";
+import { runWorkflowIdempotent } from "@/lib/execution/idempotency";
+import { WorkflowLockedError, LockAcquisitionFailedError } from "@/lib/execution/lock";
 
 /**
  * POST /api/webhooks/[triggerId]
@@ -114,23 +115,89 @@ export async function POST(
     }
 
     // ============================================================================
-    // STEP 5: Call runWorkflow to start execution
+    // STEP 5: Call runWorkflow with idempotency to start execution
     // ============================================================================
 
     let executionId: string;
+    let isDuplicate = false;
+    let isLocked = false;
+    let lockedByExecution: string | undefined;
+    
     try {
-      const execution = await runWorkflow({
+      // Extract eventId from payload if available (common pattern in webhooks)
+      const eventId = 
+        typeof webhookPayload === "object" && webhookPayload !== null && "id" in webhookPayload
+          ? String((webhookPayload as any).id)
+          : undefined;
+
+      const result = await runWorkflowIdempotent({
         workflowId: subscription.workflowId,
         userId: subscription.workflow.userId,
         triggerInput: webhookPayload,
+        idempotency: {
+          nodeId: subscription.nodeId,
+          webhookPath: subscription.webhookPath,
+          eventId,
+        },
       });
 
-      executionId = execution.id;
+      executionId = result.executionId;
+      isDuplicate = result.isDuplicate;
 
-      console.log(
-        `[Webhook] Execution started: ${executionId} for workflow: ${subscription.workflowId}`
-      );
+      if (isDuplicate) {
+        console.log(
+          `[Webhook] Duplicate event detected. Returning existing execution: ${executionId}`
+        );
+      } else {
+        console.log(
+          `[Webhook] Execution started: ${executionId} for workflow: ${subscription.workflowId}`
+        );
+      }
     } catch (error) {
+      // Handle specific lock errors
+      if (error instanceof WorkflowLockedError) {
+        isLocked = true;
+        lockedByExecution = error.existingExecutionId;
+
+        console.warn(
+          `[Webhook] Workflow locked by concurrent execution: ${lockedByExecution}`
+        );
+
+        const duration = Date.now() - startTime;
+
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Workflow currently executing",
+            details: `Only one execution can run at a time. Currently executing: ${lockedByExecution}`,
+            triggerId,
+            workflowId: subscription.workflowId,
+            existingExecutionId: lockedByExecution,
+            duration: `${duration}ms`,
+          },
+          { status: 409 } // Conflict status
+        );
+      }
+
+      if (error instanceof LockAcquisitionFailedError) {
+        console.warn(`[Webhook] Lock acquisition failed (concurrent request won)`);
+
+        const duration = Date.now() - startTime;
+
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Concurrent execution attempted",
+            details: "Another concurrent request acquired the execution lock",
+            triggerId,
+            workflowId: subscription.workflowId,
+            duration: `${duration}ms`,
+          },
+          { status: 409 } // Conflict status
+        );
+      }
+
+      // Other errors
       console.error(`[Webhook] Failed to start execution:`, error);
       return NextResponse.json(
         {
@@ -144,14 +211,16 @@ export async function POST(
     }
 
     // ============================================================================
-    // STEP 6: Update subscription with execution data
+    // STEP 6: Update subscription with execution data (skip if duplicate)
     // ============================================================================
 
-    try {
-      await updateSubscriptionAfterExecution(subscription.id, webhookPayload);
-    } catch (error) {
-      // Log but don't fail - execution already started
-      console.warn(`[Webhook] Failed to update subscription:`, error);
+    if (!isDuplicate) {
+      try {
+        await updateSubscriptionAfterExecution(subscription.id, webhookPayload);
+      } catch (error) {
+        // Log but don't fail - execution already started
+        console.warn(`[Webhook] Failed to update subscription:`, error);
+      }
     }
 
     // ============================================================================
@@ -161,7 +230,7 @@ export async function POST(
     const duration = Date.now() - startTime;
 
     console.log(
-      `[Webhook] Success: execution ${executionId} started in ${duration}ms`
+      `[Webhook] Success: execution ${executionId} ${isDuplicate ? "(duplicate) " : ""}returned in ${duration}ms`
     );
 
     return NextResponse.json(
@@ -170,6 +239,7 @@ export async function POST(
         triggerId,
         workflowId: subscription.workflowId,
         executionId,
+        isDuplicate,
         duration: `${duration}ms`,
       },
       { status: 200 }

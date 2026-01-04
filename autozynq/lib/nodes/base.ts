@@ -16,7 +16,7 @@ export interface NodeContext {
 // Enforces type safety and validation at the node level.
 export interface AutomationNode {
   type: string; // Unique identifier (e.g., "gmail.trigger.newEmail")
-  category: "trigger" | "action"; // Node category determines workflow position
+  category: "trigger" | "action" | "logic"; // Node category determines workflow position and behavior
   displayName: string; // Human-readable name for UI
   description: string; // Short description of what the node does
   configSchema: ZodSchema; // Validates node.config in workflow definition

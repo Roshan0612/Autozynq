@@ -1,6 +1,8 @@
 import type { AutomationNode } from "./base";
 import { gmailNodes } from "./gmail";
 import { slackNodes } from "./slack";
+import { ifConditionNode } from "./logic";
+import { testPassthroughTrigger } from "./test";
 
 // Central registry of all automation nodes.
 // This is the single source of truth for node definitions.
@@ -8,6 +10,8 @@ import { slackNodes } from "./slack";
 export const nodeRegistry: Record<string, AutomationNode> = {
   ...gmailNodes,
   ...slackNodes,
+  [ifConditionNode.type]: ifConditionNode,
+  [testPassthroughTrigger.type]: testPassthroughTrigger,
 };
 
 // Helper to safely retrieve a node definition with error handling.
@@ -31,6 +35,6 @@ export function listNodeTypes(): string[] {
 }
 
 // Helper to get all nodes by category.
-export function getNodesByCategory(category: "trigger" | "action"): AutomationNode[] {
+export function getNodesByCategory(category: "trigger" | "action" | "logic"): AutomationNode[] {
   return Object.values(nodeRegistry).filter((node) => node.category === category);
 }

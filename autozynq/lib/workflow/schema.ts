@@ -11,6 +11,7 @@ export const workflowNodeSchema = z.object({
 export const workflowEdgeSchema = z.object({
   from: z.string().min(1, "Edge 'from' is required"),
   to: z.string().min(1, "Edge 'to' is required"),
+  condition: z.string().optional(), // Optional condition for branching (e.g., "true", "false")
 });
 
 export const workflowDefinitionSchema = z.object({

@@ -10,6 +10,7 @@ export {
 } from "./subscriptions";
 
 // Legacy trigger service (WorkflowTrigger model)
+export {
   registerWorkflowTriggers,
   deactivateWorkflowTriggers,
   getTriggerById,
