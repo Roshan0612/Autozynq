@@ -1,33 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getTriggerById, validateTriggerActive, TriggerValidationError } from "@/lib/triggers";
+import {
+  getTriggerSubscriptionByPath,
+  updateSubscriptionAfterExecution,
+} from "@/lib/triggers/subscriptions";
 import { runWorkflow } from "@/lib/execution";
-import { TriggerExecutionInput } from "@/lib/triggers/types";
 
 /**
  * POST /api/webhooks/[triggerId]
  * 
  * Webhook Trigger Endpoint
  * 
- * This endpoint receives external HTTP events and starts workflow execution.
- * It acts as a bridge between external services and the execution engine.
+ * Receives HTTP events from external systems and starts workflow execution.
+ * Acts as a bridge between external services and the execution engine.
  * 
  * Flow:
- * 1. Extract triggerId from URL
- * 2. Parse and validate request body
- * 3. Look up trigger metadata from database
- * 4. Validate trigger is active
- * 5. Prepare execution input with trigger data
- * 6. Call runWorkflow() to start execution
- * 7. Return HTTP 200 immediately
+ * 1. Extract trigger webhook path from URL
+ * 2. Parse request body as JSON
+ * 3. Look up trigger subscription
+ * 4. Validate workflow is ACTIVE
+ * 5. Call runWorkflow() to start execution
+ * 6. Update subscription metadata
+ * 7. Return 200 with execution ID
  * 
- * Design Principles:
- * - No workflow logic in this route (separation of concerns)
- * - Trigger service handles all validation
- * - Execution engine handles all workflow execution
- * - This route is just a thin bridge layer
- * 
- * @param req - Next.js request object
- * @param params - Route parameters { triggerId }
+ * Design:
+ * - No authentication required (webhooks are public)
+ * - Minimal validation (payload must be object)
+ * - Defensive error handling (never crashes)
+ * - All errors logged but gracefully returned
  */
 export async function POST(
   req: NextRequest,
@@ -37,7 +36,7 @@ export async function POST(
 
   try {
     // ============================================================================
-    // STEP 1: Extract trigger ID from URL
+    // STEP 1: Extract trigger ID (webhook path) from URL
     // ============================================================================
 
     const { triggerId } = await params;
@@ -50,115 +49,131 @@ export async function POST(
     }
 
     // ============================================================================
-    // STEP 2: Parse request body (webhook payload)
+    // STEP 2: Parse webhook payload (JSON)
     // ============================================================================
 
     let webhookPayload: unknown;
     try {
       webhookPayload = await req.json();
     } catch {
-      // If body is not JSON, use empty object
+      // Allow empty body
       webhookPayload = {};
     }
 
-    // Extract metadata from request
-    const metadata = {
-      triggerId,
-      triggerType: "WEBHOOK" as const,
-      timestamp: new Date().toISOString(),
-      source: {
-        ip: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown",
-        userAgent: req.headers.get("user-agent") || "unknown",
-        method: req.method,
-        url: req.url,
-      },
-    };
+    // Validate payload is an object
+    if (typeof webhookPayload !== "object" || webhookPayload === null) {
+      return NextResponse.json(
+        {
+          error: "Invalid payload: must be a JSON object",
+          triggerId,
+        },
+        { status: 400 }
+      );
+    }
 
     console.log(`[Webhook] Received event for trigger: ${triggerId}`);
-    console.log(`[Webhook] Payload:`, JSON.stringify(webhookPayload, null, 2));
+    console.log(
+      `[Webhook] Payload: ${JSON.stringify(webhookPayload).substring(0, 200)}...`
+    );
 
     // ============================================================================
-    // STEP 3: Look up trigger metadata from database
+    // STEP 3: Look up trigger subscription by webhook path
     // ============================================================================
 
-    const trigger = await getTriggerById(triggerId);
+    const subscription = await getTriggerSubscriptionByPath(triggerId);
 
-    if (!trigger) {
+    if (!subscription) {
       console.warn(`[Webhook] Trigger not found: ${triggerId}`);
       return NextResponse.json(
-        { error: "Trigger not found" },
+        { error: "Trigger not found", triggerId },
         { status: 404 }
       );
     }
 
+    console.log(
+      `[Webhook] Found subscription: ${subscription.id} for workflow: ${subscription.workflowId}`
+    );
+
     // ============================================================================
-    // STEP 4: Validate trigger is active
+    // STEP 4: Validate workflow is ACTIVE
     // ============================================================================
 
-    try {
-      await validateTriggerActive(trigger);
-    } catch (error) {
-      if (error instanceof TriggerValidationError) {
-        console.warn(`[Webhook] Trigger validation failed:`, error.message);
-        return NextResponse.json(
-          {
-            error: "Trigger is not active",
-            details: error.details,
-          },
-          { status: 403 }
-        );
-      }
-      throw error;
+    if (subscription.workflow.status !== "ACTIVE") {
+      console.warn(
+        `[Webhook] Workflow not active: ${subscription.workflowId} (status: ${subscription.workflow.status})`
+      );
+      return NextResponse.json(
+        {
+          error: "Workflow is not active",
+          triggerId,
+          workflowId: subscription.workflowId,
+          status: subscription.workflow.status,
+        },
+        { status: 400 }
+      );
     }
 
     // ============================================================================
-    // STEP 5: Prepare execution input
+    // STEP 5: Call runWorkflow to start execution
     // ============================================================================
 
-    // Build trigger execution input with webhook payload
-    const triggerInput: TriggerExecutionInput = {
-      triggerNodeId: trigger.nodeId,
-      triggerData: webhookPayload,
-      metadata,
-    };
+    let executionId: string;
+    try {
+      const execution = await runWorkflow({
+        workflowId: subscription.workflowId,
+        userId: subscription.workflow.userId,
+        triggerInput: webhookPayload,
+      });
 
-    console.log(`[Webhook] Starting workflow execution:`, {
-      workflowId: trigger.workflowId,
-      nodeId: trigger.nodeId,
-      triggerId: trigger.id,
-    });
+      executionId = execution.id;
+
+      console.log(
+        `[Webhook] Execution started: ${executionId} for workflow: ${subscription.workflowId}`
+      );
+    } catch (error) {
+      console.error(`[Webhook] Failed to start execution:`, error);
+      return NextResponse.json(
+        {
+          error: "Failed to start execution",
+          triggerId,
+          workflowId: subscription.workflowId,
+          details: error instanceof Error ? error.message : String(error),
+        },
+        { status: 500 }
+      );
+    }
 
     // ============================================================================
-    // STEP 6: Start workflow execution
+    // STEP 6: Update subscription with execution data
     // ============================================================================
 
-    // Execute workflow asynchronously
-    // In production, this should be queued (BullMQ/Redis) but for now sync is fine
-    const executionId = await runWorkflow({
-      workflowId: trigger.workflowId,
-      triggerInput: triggerInput.triggerData, // Pass webhook payload as trigger input
-      userId: undefined, // Triggered by external event, not a user
-    });
+    try {
+      await updateSubscriptionAfterExecution(subscription.id, webhookPayload);
+    } catch (error) {
+      // Log but don't fail - execution already started
+      console.warn(`[Webhook] Failed to update subscription:`, error);
+    }
 
     // ============================================================================
     // STEP 7: Return success response
     // ============================================================================
 
-    const executionTime = Date.now() - startTime;
+    const duration = Date.now() - startTime;
 
-    console.log(`[Webhook] Execution started successfully:`, {
-      executionId,
-      triggerId,
-      executionTime: `${executionTime}ms`,
-    });
+    console.log(
+      `[Webhook] Success: execution ${executionId} started in ${duration}ms`
+    );
 
-    return NextResponse.json({
-      success: true,
-      executionId,
-      triggerId,
-      message: "Workflow execution started",
-      executionTime: `${executionTime}ms`,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        triggerId,
+        workflowId: subscription.workflowId,
+        executionId,
+        duration: `${duration}ms`,
+      },
+      { status: 200 }
+    );
   } catch (error) {
     // ============================================================================
     // ERROR HANDLING
@@ -166,14 +181,14 @@ export async function POST(
 
     console.error(`[Webhook] Error processing webhook:`, error);
 
-    const executionTime = Date.now() - startTime;
+    const duration = Date.now() - startTime;
 
     return NextResponse.json(
       {
-        success: false,
-        error: "Failed to process webhook",
-        message: error instanceof Error ? error.message : String(error),
-        executionTime: `${executionTime}ms`,
+        error: "Internal server error",
+        details: error instanceof Error ? error.message : String(error),
+        triggerId,
+        duration: `${duration}ms`,
       },
       { status: 500 }
     );
@@ -183,9 +198,8 @@ export async function POST(
 /**
  * GET /api/webhooks/[triggerId]
  * 
- * Get trigger information (for debugging/testing)
- * 
- * Returns trigger metadata without starting execution.
+ * Returns trigger subscription information for debugging.
+ * No authentication required.
  */
 export async function GET(
   req: NextRequest,
@@ -194,48 +208,37 @@ export async function GET(
   try {
     const { triggerId } = await params;
 
-    const trigger = await getTriggerById(triggerId);
-
-    if (!trigger) {
+    if (!triggerId) {
       return NextResponse.json(
-        { error: "Trigger not found" },
+        { error: "Trigger ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const subscription = await getTriggerSubscriptionByPath(triggerId);
+
+    if (!subscription) {
+      return NextResponse.json(
+        { error: "Trigger not found", triggerId },
         { status: 404 }
       );
     }
 
-    // Check if trigger is active
-    let isValid = false;
-    let validationError: string | undefined;
-
-    try {
-      await validateTriggerActive(trigger);
-      isValid = true;
-    } catch (error) {
-      if (error instanceof TriggerValidationError) {
-        validationError = error.message;
-      }
-    }
-
     return NextResponse.json({
-      triggerId: trigger.id,
-      workflowId: trigger.workflowId,
-      nodeId: trigger.nodeId,
-      type: trigger.type,
-      isActive: trigger.isActive,
-      isValid,
-      validationError,
-      createdAt: trigger.createdAt,
-      updatedAt: trigger.updatedAt,
+      id: subscription.id,
+      workflowId: subscription.workflowId,
+      nodeId: subscription.nodeId,
+      triggerType: subscription.triggerType,
+      webhookPath: subscription.webhookPath,
+      webhookUrl: `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/api/webhooks/${subscription.webhookPath}`,
+      executionCount: subscription.executionCount,
+      lastPayload: subscription.lastPayload,
+      workflowStatus: subscription.workflow.status,
+      createdAt: subscription.createdAt,
+      updatedAt: subscription.updatedAt,
     });
   } catch (error) {
-    console.error(`[Webhook] Error fetching trigger:`, error);
+    console.error(`[Webhook] GET error:`, error);
 
     return NextResponse.json(
-      {
-        error: "Failed to fetch trigger",
-        message: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 }
-    );
-  }
-}
+      { error: "Internal server error" },

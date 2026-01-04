@@ -87,9 +87,10 @@ model Workflow {
   createdAt  DateTime       @default(now())
   updatedAt  DateTime       @updatedAt
 
-  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  executions Execution[]
-  triggers   WorkflowTrigger[]
+  user                 User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  executions           Execution[]
+  triggers             WorkflowTrigger[]
+  triggerSubscriptions TriggerSubscription[]  @relation("TriggerSubscriptions")
 
   @@index([userId])
   @@index([status])
@@ -127,4 +128,20 @@ model WorkflowTrigger {
   @@unique([workflowId, nodeId])
   @@index([workflowId])
   @@index([type, isActive])
+}
+
+model TriggerSubscription {
+  id             String    @id @default(cuid())
+  workflowId     String
+  nodeId         String
+  triggerType    String    // "webhook"
+  webhookPath    String    @unique
+  lastPayload    Json?
+  executionCount Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  workflow Workflow @relation("TriggerSubscriptions", fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([workflowId])
 }

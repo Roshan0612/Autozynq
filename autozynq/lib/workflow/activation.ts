@@ -2,17 +2,21 @@ import { prisma } from "../prisma";
 import { WorkflowStatus } from "@prisma/client";
 import { validateWorkflowDefinition } from "./validate";
 import {
-  registerWorkflowTriggers,
-  deactivateWorkflowTriggers,
-  TriggerRegistration,
-} from "../triggers";
+  getTriggerNodeFromDefinition,
+  type WorkflowDefinition,
+} from "./schema";
+import {
+  createTriggerSubscription,
+  getWorkflowSubscriptions,
+  deleteTriggerSubscription,
+} from "../triggers/subscriptions";
 
 /**
  * Workflow Activation Service
  * 
  * Handles workflow activation/deactivation lifecycle:
  * - Validates workflow definition
- * - Registers/deactivates triggers
+ * - Registers/deactivates trigger subscriptions
  * - Updates workflow status
  * 
  * This is the single source of truth for workflow activation.
@@ -21,7 +25,7 @@ import {
 export interface ActivationResult {
   workflowId: string;
   status: WorkflowStatus;
-  triggers: TriggerRegistration[];
+  webhookUrl?: string;
   message: string;
 }
 
@@ -42,12 +46,12 @@ export class WorkflowActivationError extends Error {
  * This performs the following operations:
  * 1. Validate workflow definition
  * 2. Update workflow status to ACTIVE
- * 3. Register all trigger nodes
- * 4. Return trigger URLs for external services
+ * 3. Register trigger subscription
+ * 4. Return webhook URL for external services
  * 
  * @param workflowId - Workflow to activate
  * @param userId - User performing activation (for authorization)
- * @returns Activation result with trigger URLs
+ * @returns Activation result with webhook URL
  */
 export async function activateWorkflow(
   workflowId: string,
@@ -72,14 +76,16 @@ export async function activateWorkflow(
 
   // Check if already active
   if (workflow.status === "ACTIVE") {
-    // Re-register triggers to ensure consistency
-    const triggers = await registerWorkflowTriggers(workflowId);
+    const subscriptions = await getWorkflowSubscriptions(workflowId);
+    const webhookUrl = subscriptions[0]
+      ? `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/api/webhooks/${subscriptions[0].webhookPath}`
+      : undefined;
 
     return {
       workflowId,
       status: "ACTIVE",
-      triggers,
-      message: "Workflow is already active. Triggers have been refreshed.",
+      webhookUrl,
+      message: "Workflow is already active.",
     };
   }
 
@@ -99,18 +105,32 @@ export async function activateWorkflow(
   }
 
   // ============================================================================
-  // STEP 2: Register triggers
+  // STEP 2: Find trigger node and create subscription
   // ============================================================================
 
-  let triggers: TriggerRegistration[];
+  const definition = workflow.definition as WorkflowDefinition;
+  const triggerNode = getTriggerNodeFromDefinition(definition);
+
+  if (!triggerNode) {
+    throw new WorkflowActivationError(
+      "No trigger node found in workflow definition",
+      { workflowId }
+    );
+  }
+
+  let subscription;
   try {
-    triggers = await registerWorkflowTriggers(workflowId);
+    subscription = await createTriggerSubscription({
+      workflowId,
+      nodeId: triggerNode.id,
+      triggerType: "webhook",
+    });
   } catch (error) {
     throw new WorkflowActivationError(
-      `Failed to register triggers: ${
+      `Failed to create trigger subscription: ${
         error instanceof Error ? error.message : String(error)
       }`,
-      { workflowId, triggerError: error }
+      { workflowId, subscriptionError: error }
     );
   }
 
@@ -123,14 +143,16 @@ export async function activateWorkflow(
     data: { status: "ACTIVE" },
   });
 
+  const webhookUrl = `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/api/webhooks/${subscription.webhookPath}`;
+
   console.log(`[Activation] Workflow activated: ${workflowId}`);
-  console.log(`[Activation] Registered ${triggers.length} trigger(s)`);
+  console.log(`[Activation] Webhook URL: ${webhookUrl}`);
 
   return {
     workflowId,
     status: "ACTIVE",
-    triggers,
-    message: `Workflow activated successfully with ${triggers.length} trigger(s)`,
+    webhookUrl,
+    message: "Workflow activated successfully with webhook trigger",
   };
 }
 
@@ -142,10 +164,8 @@ export async function activateWorkflow(
  * Deactivate a workflow.
  * 
  * This performs the following operations:
- * 1. Update workflow status to PAUSED
- * 2. Deactivate all triggers (stop accepting events)
- * 
- * Triggers are not deleted to preserve history and allow reactivation.
+ * 1. Delete all trigger subscriptions
+ * 2. Update workflow status to PAUSED
  * 
  * @param workflowId - Workflow to deactivate
  * @param userId - User performing deactivation (for authorization)
@@ -176,16 +196,19 @@ export async function deactivateWorkflow(
     return {
       workflowId,
       status: workflow.status,
-      triggers: [],
       message: `Workflow is already inactive (status: ${workflow.status})`,
     };
   }
 
   // ============================================================================
-  // STEP 1: Deactivate triggers
+  // STEP 1: Delete all trigger subscriptions
   // ============================================================================
 
-  await deactivateWorkflowTriggers(workflowId);
+  const subscriptions = await getWorkflowSubscriptions(workflowId);
+  for (const subscription of subscriptions) {
+    await deleteTriggerSubscription(subscription.id);
+  }
+
 
   // ============================================================================
   // STEP 2: Update workflow status
@@ -197,12 +220,12 @@ export async function deactivateWorkflow(
   });
 
   console.log(`[Deactivation] Workflow deactivated: ${workflowId}`);
+  console.log(`[Deactivation] Removed ${subscriptions.length} subscription(s)`);
 
   return {
     workflowId,
     status: "PAUSED",
-    triggers: [],
-    message: "Workflow deactivated successfully. Triggers are now inactive.",
+    message: `Workflow deactivated. Removed ${subscriptions.length} trigger subscription(s)`,
   };
 }
 

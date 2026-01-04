@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { getNodesByCategory } from "../nodes/registry";
 
 // Generic node + edge schema keeps execution engine flexible without DB migrations.
 export const workflowNodeSchema = z.object({
@@ -20,3 +21,14 @@ export const workflowDefinitionSchema = z.object({
 export type WorkflowNode = z.infer<typeof workflowNodeSchema>;
 export type WorkflowEdge = z.infer<typeof workflowEdgeSchema>;
 export type WorkflowDefinition = z.infer<typeof workflowDefinitionSchema>;
+
+/**
+ * Find the trigger node in a workflow definition
+ * @returns The trigger node, or undefined if not found
+ */
+export function getTriggerNodeFromDefinition(
+  definition: WorkflowDefinition
+): WorkflowNode | undefined {
+  const triggerNodeTypes = getNodesByCategory("trigger").map((n) => n.type);
+  return definition.nodes.find((node) => triggerNodeTypes.includes(node.type));
+}
