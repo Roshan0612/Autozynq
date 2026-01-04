@@ -136,6 +136,23 @@ export default async function ExecutionDetailPage({
         </p>
       </div>
 
+      {/* Trigger Payload */}
+      {execution.result && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="font-mono text-lg">Trigger Payload</CardTitle>
+            <p className="text-sm text-muted-foreground mt-2">
+              Raw webhook payload or manual trigger input
+            </p>
+          </CardHeader>
+          <CardContent>
+            <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-xs">
+              {JSON.stringify(execution.result, null, 2)}
+            </pre>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Execution Summary */}
       <Card className="mb-6">
         <CardHeader>

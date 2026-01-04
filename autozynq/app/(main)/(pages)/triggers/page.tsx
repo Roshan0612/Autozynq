@@ -4,10 +4,18 @@ import Link from "next/link";
 import { authOptions } from "@/lib/auth/options";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { prisma } from "@/lib/prisma";
 import { CopyButton } from "@/app/components/CopyButton";
 
-async function getTriggers() {
+async function getTriggerSubscriptions() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
     redirect("/api/auth/signin");
@@ -22,8 +30,8 @@ async function getTriggers() {
     return [];
   }
 
-  // Fetch all triggers for user's workflows
-  const triggers = await prisma.workflowTrigger.findMany({
+  // Fetch all trigger subscriptions for user's workflows
+  const subscriptions = await prisma.triggerSubscription.findMany({
     where: {
       workflow: {
         userId: user.id,
@@ -35,132 +43,89 @@ async function getTriggers() {
           id: true,
           name: true,
           status: true,
+          definition: true,
         },
       },
     },
     orderBy: { createdAt: "desc" },
   });
 
-  return triggers;
+  return subscriptions;
 }
 
 export default async function TriggersPage() {
-  const triggers = await getTriggers();
+  const subscriptions = await getTriggerSubscriptions();
   const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
 
   return (
-    <div className="container mx-auto py-8 px-4">
+    <div className="container mx-auto py-8 px-4 max-w-6xl">
       <div className="mb-6">
         <h1 className="text-2xl font-mono font-bold mb-2">Triggers</h1>
         <p className="text-sm text-muted-foreground">
-          Debug webhook & trigger behavior. Verify real-world events reach the engine.
-        </p>
-        <p className="text-xs text-muted-foreground mt-1">
-          (Scaffold UI - webhook event logging coming soon)
+          Webhook trigger subscriptions. Debug webhook firing and payload reception.
         </p>
       </div>
 
-      {triggers.length === 0 ? (
+      {subscriptions.length === 0 ? (
         <div className="border border-dashed rounded-lg p-12 text-center">
-          <p className="text-muted-foreground">No triggers registered</p>
+          <p className="text-muted-foreground">No trigger subscriptions</p>
           <p className="text-sm text-muted-foreground mt-2">
-            Activate a workflow to register triggers
+            Activate a workflow to create a webhook trigger
           </p>
         </div>
       ) : (
-        <div className="grid gap-6">
-          {triggers.map((trigger) => {
-            const webhookUrl = `${baseUrl}/api/webhooks/${trigger.id}`;
-
-            return (
-              <Card key={trigger.id}>
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="font-mono text-sm mb-1">
-                        {trigger.nodeId}
-                      </CardTitle>
-                      <Link
-                        href={`/workflows/${trigger.workflow.id}`}
-                        className="text-sm text-blue-600 hover:underline"
-                      >
-                        {trigger.workflow.name}
-                      </Link>
-                    </div>
-                    <Badge
-                      variant={trigger.isActive ? "default" : "secondary"}
+        <div className="border rounded-lg">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="font-mono">Workflow</TableHead>
+                <TableHead className="font-mono">Node</TableHead>
+                <TableHead className="font-mono">Type</TableHead>
+                <TableHead className="font-mono">Webhook Fires</TableHead>
+                <TableHead className="font-mono">Created</TableHead>
+                <TableHead className="w-[100px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {subscriptions.map((sub: any) => (
+                <TableRow key={sub.id}>
+                  <TableCell>
+                    <Link
+                      href={`/workflows/${sub.workflow.id}`}
+                      className="text-sm hover:underline text-blue-600"
                     >
-                      {trigger.isActive ? "Active" : "Inactive"}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <dl className="space-y-3 text-sm">
-                    <div>
-                      <dt className="font-mono text-xs text-muted-foreground mb-1">
-                        Trigger ID
-                      </dt>
-                      <dd className="font-mono text-xs bg-muted p-2 rounded">
-                        {trigger.id}
-                      </dd>
-                    </div>
-
-                    <div>
-                      <dt className="font-mono text-xs text-muted-foreground mb-1">
-                        Type
-                      </dt>
-                      <dd className="font-mono text-xs">
-                        <Badge variant="outline">{trigger.type}</Badge>
-                      </dd>
-                    </div>
-
-                    {trigger.type === "WEBHOOK" && (
-                      <div>
-                        <dt className="font-mono text-xs text-muted-foreground mb-1">
-                          Webhook URL
-                        </dt>
-                        <dd className="font-mono text-xs bg-muted p-2 rounded break-all flex items-center justify-between gap-2">
-                          <span className="flex-1">{webhookUrl}</span>
-                          <CopyButton text={webhookUrl} />
-                        </dd>
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <dt className="font-mono text-xs text-muted-foreground">
-                          Created
-                        </dt>
-                        <dd className="text-xs">
-                          {new Date(trigger.createdAt).toLocaleString()}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="font-mono text-xs text-muted-foreground">
-                          Updated
-                        </dt>
-                        <dd className="text-xs">
-                          {new Date(trigger.updatedAt).toLocaleString()}
-                        </dd>
-                      </div>
-                    </div>
-
-                    {/* Placeholder for future webhook event logging */}
-                    <div className="pt-4 border-t">
-                      <dt className="font-mono text-xs text-muted-foreground mb-2">
-                        Recent Events
-                      </dt>
-                      <dd className="text-xs text-muted-foreground italic">
-                        Webhook event logging not yet implemented
-                      </dd>
-                    </div>
-                  </dl>
-                </CardContent>
-              </Card>
-            );
-          })}
+                      {sub.workflow.name}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="font-mono text-xs text-muted-foreground">
+                    {sub.nodeId}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{sub.triggerType}</Badge>
+                  </TableCell>
+                  <TableCell className="font-mono text-sm">
+                    <span className="bg-muted px-2 py-1 rounded">
+                      {sub.executionCount} executions
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {new Date(sub.createdAt).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>
+                    <Link
+                      href={`/triggers/${sub.id}`}
+                      className="text-sm text-blue-600 hover:underline"
+                    >
+                      View →
+                    </Link>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       )}
     </div>
   );
 }
+
