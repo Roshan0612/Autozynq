@@ -31,7 +31,7 @@ import { TriggerExecutionInput } from "@/lib/triggers/types";
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { triggerId: string } }
+  { params }: { params: Promise<{ triggerId: string }> }
 ) {
   const startTime = Date.now();
 
@@ -40,7 +40,7 @@ export async function POST(
     // STEP 1: Extract trigger ID from URL
     // ============================================================================
 
-    const triggerId = params.triggerId;
+    const { triggerId } = await params;
 
     if (!triggerId) {
       return NextResponse.json(
@@ -189,10 +189,10 @@ export async function POST(
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { triggerId: string } }
+  { params }: { params: Promise<{ triggerId: string }> }
 ) {
   try {
-    const triggerId = params.triggerId;
+    const { triggerId } = await params;
 
     const trigger = await getTriggerById(triggerId);
 

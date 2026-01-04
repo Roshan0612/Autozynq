@@ -7,6 +7,8 @@ import {
   Settings,
   Plug,
   Workflow,
+  Activity,
+  Webhook,
   CreditCard,
   Receipt,
   FileText,
@@ -23,9 +25,11 @@ import ModeToggle from "../global/ModeToggle";
 
 const sidebarItems = [
   { name: "Dashboard", icon: Home, href: "/dashboard" },
+  { name: "Workflows", icon: Workflow, href: "/workflows" },
+  { name: "Executions", icon: Activity, href: "/executions" },
+  { name: "Triggers", icon: Webhook, href: "/triggers" },
   { name: "Settings", icon: Settings, href: "/settings" },
   { name: "Connections", icon: Plug, href: "/dashboard/connections" },
-  { name: "Workflow", icon: Workflow, href: "/dashboard/workflow" },
   { name: "Payment", icon: CreditCard, href: "/dashboard/payment" },
   { name: "Billings", icon: Receipt, href: "/dashboard/billings" },
   { name: "Templates", icon: FileText, href: "/dashboard/templates" },
