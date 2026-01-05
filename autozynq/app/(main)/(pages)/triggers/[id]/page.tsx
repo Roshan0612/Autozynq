@@ -88,6 +88,10 @@ function getStatusColor(
       return "default";
     case "FAILED":
       return "destructive";
+    case "CANCEL_REQUESTED":
+      return "secondary";
+    case "ABORTED":
+      return "outline";
     default:
       return "outline";
   }

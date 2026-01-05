@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { prisma } from "@/lib/prisma";
+import { CopyButton } from "@/app/components/CopyButton";
 
 async function getWorkflow(id: string) {
   const session = await getServerSession(authOptions);
@@ -37,7 +38,16 @@ async function getWorkflow(id: string) {
     },
   });
 
-  return workflow;
+  if (!workflow) {
+    return null;
+  }
+
+  const triggerSubscriptions = await prisma.triggerSubscription.findMany({
+    where: { workflowId: workflow.id },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return { workflow, triggerSubscriptions };
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -56,9 +66,9 @@ export default async function WorkflowDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const workflow = await getWorkflow(id);
+  const workflowData = await getWorkflow(id);
 
-  if (!workflow) {
+  if (!workflowData) {
     return (
       <div className="container mx-auto py-8 px-4">
         <div className="border border-dashed rounded-lg p-12 text-center">
@@ -71,9 +81,12 @@ export default async function WorkflowDetailPage({
     );
   }
 
+  const { workflow, triggerSubscriptions } = workflowData;
+
   const definition = workflow.definition as any;
   const nodes = definition?.nodes || [];
   const edges = definition?.edges || [];
+  const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -93,6 +106,17 @@ export default async function WorkflowDetailPage({
           <CardTitle className="font-mono text-lg">Metadata</CardTitle>
         </CardHeader>
         <CardContent>
+          <div className="flex items-center justify-between mb-4">
+            <div className="text-xs text-muted-foreground">
+              Build and test this workflow in the visual builder.
+            </div>
+            <Link
+              href={`/workflows/${workflow.id}/builder`}
+              className="text-sm text-blue-600 hover:underline font-mono"
+            >
+              Open Builder →
+            </Link>
+          </div>
           <dl className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <dt className="font-mono text-muted-foreground">ID</dt>
@@ -113,6 +137,70 @@ export default async function WorkflowDetailPage({
               <dd>{new Date(workflow.updatedAt).toLocaleString()}</dd>
             </div>
           </dl>
+        </CardContent>
+      </Card>
+
+      {/* Trigger Info */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="font-mono text-lg">Trigger Info</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Webhook subscriptions for this workflow (read-only).
+          </p>
+        </CardHeader>
+        <CardContent>
+          {triggerSubscriptions.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No trigger subscriptions. Activate the workflow to register webhooks.
+            </p>
+          ) : (
+            <div className="border rounded-lg overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="font-mono">Node ID</TableHead>
+                    <TableHead className="font-mono">Type</TableHead>
+                    <TableHead className="font-mono">Webhook URL</TableHead>
+                    <TableHead className="font-mono">Created</TableHead>
+                    <TableHead className="w-[80px]"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {triggerSubscriptions.map((sub) => {
+                    const webhookUrl = `${baseUrl}/api/webhooks/${sub.webhookPath}`;
+
+                    return (
+                      <TableRow key={sub.id}>
+                        <TableCell className="font-mono text-xs text-muted-foreground">
+                          {sub.nodeId}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{sub.triggerType}</Badge>
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className="truncate">{webhookUrl}</span>
+                            <CopyButton text={webhookUrl} />
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {new Date(sub.createdAt).toLocaleString()}
+                        </TableCell>
+                        <TableCell>
+                          <Link
+                            href={`/triggers/${sub.id}`}
+                            className="text-sm text-blue-600 hover:underline"
+                          >
+                            View →
+                          </Link>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
 

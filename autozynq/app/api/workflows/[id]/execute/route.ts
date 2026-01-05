@@ -23,7 +23,7 @@ import { prisma } from "@/lib/prisma";
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Authenticate user
@@ -35,7 +35,7 @@ export async function POST(
       );
     }
 
-    const workflowId = params.id;
+    const { id: workflowId } = await params;
 
     // Verify workflow exists and user owns it
     const workflow = await prisma.workflow.findUnique({
@@ -114,7 +114,7 @@ export async function POST(
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Authenticate user
@@ -126,7 +126,7 @@ export async function GET(
       );
     }
 
-    const workflowId = params.id;
+    const { id: workflowId } = await params;
 
     // Verify workflow exists and user owns it
     const workflow = await prisma.workflow.findUnique({

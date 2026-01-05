@@ -3,6 +3,10 @@ import { gmailNodes } from "./gmail";
 import { slackNodes } from "./slack";
 import { ifConditionNode } from "./logic";
 import { testPassthroughTrigger } from "./test";
+import { webhookTriggerNode } from "./core/webhook.trigger";
+import { manualTriggerNode } from "./core/manual.trigger";
+import { httpRequestNode } from "./core/http.action";
+import { logDebugNode } from "./core/log.action";
 
 // Central registry of all automation nodes.
 // This is the single source of truth for node definitions.
@@ -12,6 +16,10 @@ export const nodeRegistry: Record<string, AutomationNode> = {
   ...slackNodes,
   [ifConditionNode.type]: ifConditionNode,
   [testPassthroughTrigger.type]: testPassthroughTrigger,
+   [webhookTriggerNode.type]: webhookTriggerNode,
+   [manualTriggerNode.type]: manualTriggerNode,
+   [httpRequestNode.type]: httpRequestNode,
+   [logDebugNode.type]: logDebugNode,
 };
 
 // Helper to safely retrieve a node definition with error handling.

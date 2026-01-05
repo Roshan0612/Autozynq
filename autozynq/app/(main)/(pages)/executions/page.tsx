@@ -60,6 +60,8 @@ function StatusBadge({ status }: { status: string }) {
     RUNNING: { variant: "secondary", color: "text-yellow-600" },
     SUCCESS: { variant: "default", color: "text-green-600" },
     FAILED: { variant: "destructive", color: "text-red-600" },
+    CANCEL_REQUESTED: { variant: "secondary", color: "text-amber-700" },
+    ABORTED: { variant: "outline", color: "text-red-700" },
   };
 
   const { variant, color } = config[status] || config.PENDING;

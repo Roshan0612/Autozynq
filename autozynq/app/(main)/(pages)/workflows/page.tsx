@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { prisma } from "@/lib/prisma";
+import { CreateWorkflowForm } from "./CreateWorkflowForm";
 
 async function getWorkflows() {
   const session = await getServerSession(authOptions);
@@ -58,6 +59,8 @@ export default async function WorkflowsPage() {
           Read-only workflow inspector. Verify schema correctness and node graph structure.
         </p>
       </div>
+
+      <CreateWorkflowForm />
 
       {workflows.length === 0 ? (
         <div className="border border-dashed rounded-lg p-12 text-center">

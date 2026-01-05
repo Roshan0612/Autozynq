@@ -24,6 +24,12 @@ A Next.js app with Prisma + NextAuth (GitHub/Google), Tailwind v3, and shadcn-st
    npm run dev
    ```
 
+## Latest Test Run
+- Date: 2026-01-05
+- Command: `npx tsx scripts/test-engine-v2-hardened.ts`
+- Result: 7 passed, 0 failed
+- Coverage: Execution engine v2 branching safety (linear, true/false branches, unmatched edge termination, ambiguous routing detection, cycle detection, multiple unconditional edges)
+
 ## Auth
 - Providers: GitHub + Google
 - Persistence: Database session strategy via Prisma Adapter

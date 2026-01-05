@@ -60,6 +60,8 @@ function StatusBadge({ status }: { status: string }) {
     RUNNING: { variant: "secondary", color: "text-yellow-600" },
     SUCCESS: { variant: "default", color: "text-green-600" },
     FAILED: { variant: "destructive", color: "text-red-600" },
+    CANCEL_REQUESTED: { variant: "secondary", color: "text-amber-700" },
+    ABORTED: { variant: "outline", color: "text-red-700" },
   };
 
   const { variant, color } = config[status] || config.PENDING;
@@ -79,6 +81,8 @@ function StepStatusBadge({ status }: { status: string }) {
     running: { variant: "secondary" },
     success: { variant: "default" },
     failed: { variant: "destructive" },
+    skipped: { variant: "outline" },
+    aborted: { variant: "outline" },
   };
 
   const { variant } = config[status] || config.running;
@@ -207,6 +211,26 @@ export default async function ExecutionDetailPage({
                 </dd>
               </div>
             )}
+            {execution.status === "ABORTED" && execution.abortedAt && (
+              <div>
+                <dt className="font-mono text-muted-foreground">Aborted At</dt>
+                <dd>{new Date(execution.abortedAt).toLocaleString()}</dd>
+              </div>
+            )}
+            {execution.status === "ABORTED" && execution.abortedBy && (
+              <div>
+                <dt className="font-mono text-muted-foreground">Aborted By</dt>
+                <dd className="font-mono text-xs">{execution.abortedBy}</dd>
+              </div>
+            )}
+            {execution.status === "ABORTED" && execution.abortReason && (
+              <div className="col-span-2">
+                <dt className="font-mono text-muted-foreground">Abort Reason</dt>
+                <dd className="font-mono text-xs bg-muted p-2 rounded border mt-1">
+                  {execution.abortReason}
+                </dd>
+              </div>
+            )}
           </dl>
 
           {execution.result && (
@@ -303,6 +327,10 @@ export default async function ExecutionDetailPage({
                     className={`border rounded-lg p-4 ${
                       step.status === "failed"
                         ? "border-red-300 bg-red-50"
+                        : step.status === "skipped"
+                        ? "border-dashed border-muted-foreground/40 bg-muted/30"
+                        : step.status === "aborted"
+                        ? "border-amber-200 bg-amber-50"
                         : "border-border"
                     }`}
                   >

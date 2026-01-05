@@ -26,14 +26,16 @@ function normalizeStatus(input: unknown): WorkflowStatus | null {
   return Object.values(WorkflowStatus).includes(candidate) ? candidate : null;
 }
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const userId = await requireUserId();
   if (!userId) {
     return unauthorizedResponse;
   }
 
+  const { id } = await params;
+
   const workflow = await prisma.workflow.findFirst({
-    where: { id: params.id, userId },
+    where: { id, userId },
   });
 
   if (!workflow) {
@@ -43,14 +45,16 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   return NextResponse.json({ workflow });
 }
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const userId = await requireUserId();
   if (!userId) {
     return unauthorizedResponse;
   }
 
+  const { id } = await params;
+
   const workflow = await prisma.workflow.findFirst({
-    where: { id: params.id, userId },
+    where: { id, userId },
   });
 
   if (!workflow) {

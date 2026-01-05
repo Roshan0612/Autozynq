@@ -1,6 +1,17 @@
 import { z } from "zod";
 import { getNodesByCategory } from "../nodes/registry";
 
+export const workflowUiSchema = z.object({
+  positions: z
+    .record(
+      z.object({
+        x: z.number(),
+        y: z.number(),
+      })
+    )
+    .default({}),
+});
+
 // Generic node + edge schema keeps execution engine flexible without DB migrations.
 export const workflowNodeSchema = z.object({
   id: z.string().min(1, "Node id is required"),
@@ -17,6 +28,7 @@ export const workflowEdgeSchema = z.object({
 export const workflowDefinitionSchema = z.object({
   nodes: z.array(workflowNodeSchema).min(1, "Workflow needs at least one node"),
   edges: z.array(workflowEdgeSchema).default([]),
+  ui: workflowUiSchema.optional(),
 });
 
 export type WorkflowNode = z.infer<typeof workflowNodeSchema>;
