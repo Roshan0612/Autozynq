@@ -26,17 +26,9 @@ export function CreateWorkflowForm() {
         body: JSON.stringify({
           name: name.trim(),
           definition: {
-            nodes: [
-              { id: "trigger1", type: "trigger.manual", config: { payload: {} } },
-              { id: "log1", type: "action.log.debug", config: { message: "New workflow" } },
-            ],
-            edges: [{ from: "trigger1", to: "log1" }],
-            ui: {
-              positions: {
-                trigger1: { x: 80, y: 80 },
-                log1: { x: 260, y: 80 },
-              },
-            },
+            nodes: [],
+            edges: [],
+            ui: { positions: {} },
           },
         }),
       });
@@ -81,9 +73,7 @@ export function CreateWorkflowForm() {
             <Button type="submit" disabled={loading}>
               {loading ? "Creating..." : "Create and open builder"}
             </Button>
-            <span className="text-xs text-muted-foreground font-mono">
-              Starts with Manual Trigger → Log node
-            </span>
+            <span className="text-xs text-muted-foreground font-mono">Starts with an empty canvas</span>
           </div>
         </form>
       </CardContent>

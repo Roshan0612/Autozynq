@@ -118,5 +118,32 @@
   border: 2px solid #1e40af !important;
 }
 
+/* Force edges visible */
+.react-flow__edges {
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block !important;
+  z-index: 50 !important;
+}
 
+.react-flow__edge {
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block !important;
+}
+
+.react-flow__edge path {
+  stroke: #3b82f6 !important;
+  stroke-width: 3px !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block !important;
+}
+
+.react-flow__edge-path {
+  stroke: #3b82f6 !important;
+  stroke-width: 3px !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
 

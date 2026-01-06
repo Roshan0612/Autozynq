@@ -14,39 +14,104 @@ import ReactFlow, {
   applyNodeChanges,
   ReactFlowProvider,
   ReactFlowInstance,
+  MarkerType,
+  BaseEdge,
+  getStraightPath,
+  EdgeProps,
 } from "reactflow";
+import "reactflow/dist/style.css";
 import { nanoid } from "nanoid";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { WorkflowDefinition } from "@/lib/workflow/schema";
 
-// Custom node component - ultra simple for visibility
+// Custom node component with a single container and positioned handles
 function CustomNode({ data }: { data: any }) {
   return (
-    <div 
-      style={{ 
-        background: "#ff0000",
-        border: "5px solid #000000",
-        padding: "20px",
-        color: "#ffffff",
-        fontSize: "16px",
-        fontWeight: "bold",
-        minWidth: "150px",
-        minHeight: "80px",
+    <div
+      style={{
+        position: "relative",
+        background: "#ffffff",
+        border: "2px solid #3b82f6",
+        padding: "12px",
+        color: "#111827",
+        fontSize: "14px",
+        fontWeight: 600,
+        minWidth: "140px",
+        minHeight: "70px",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        boxShadow: "0 0 20px rgba(0,0,0,0.5)"
+        borderRadius: "6px",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
       }}
     >
-      {data.label || "TEST NODE"}
+      <Handle
+        type="target"
+        position={Position.Top}
+        isConnectable
+        id="t"
+        style={{ background: "#3b82f6", width: 12, height: 12, border: "2px solid #1e40af" }}
+      />
+      {data.label || "Node"}
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        isConnectable
+        id="b"
+        style={{ background: "#3b82f6", width: 12, height: 12, border: "2px solid #1e40af" }}
+      />
     </div>
+  );
+}
+
+// Custom edge component that explicitly renders paths
+function CustomEdge({
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  markerEnd,
+  style,
+}: EdgeProps) {
+  console.log('🔴 CustomEdge rendering for:', id);
+  console.log('🔴 Coords:', { sourceX, sourceY, targetX, targetY });
+  
+  const [edgePath] = getStraightPath({
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+  });
+  
+  console.log('🔴 Edge path computed:', edgePath);
+  console.log('🔴 markerEnd:', markerEnd);
+
+  return (
+    <BaseEdge
+      path={edgePath}
+      markerEnd={markerEnd}
+      style={{
+        ...style,
+        stroke: "#3b82f6",
+        strokeWidth: 4,
+        opacity: 1,
+        visibility: "visible",
+      }}
+    />
   );
 }
 
 // Stable nodeTypes object - defined outside component to prevent recreation
 const nodeTypes = {
   custom: CustomNode,
+};
+
+const edgeTypes = {
+  custom: CustomEdge,
 };
 
 interface WorkflowBuilderClientProps {
@@ -138,8 +203,22 @@ function inferCategory(nodeType: string): NodeCategory {
 }
 
 function hydrateState(definition: WorkflowDefinition): WorkflowState {
-  const positions = definition.ui?.positions || {};
-  const nodes: BuilderNode[] = (definition.nodes || []).map((node, idx) => ({
+  // Remove old default seed (manual trigger + log) so builder opens empty unless user added nodes
+  const looksLikeDefaultSeed =
+    Array.isArray(definition.nodes) &&
+    definition.nodes.length === 2 &&
+    definition.edges?.length === 1 &&
+    definition.nodes.some((n) => n.id === "trigger1" && n.type === "trigger.manual") &&
+    definition.nodes.some((n) => n.id === "log1" && n.type === "action.log.debug") &&
+    definition.edges[0]?.from === "trigger1" &&
+    definition.edges[0]?.to === "log1";
+
+  const cleanedDefinition: WorkflowDefinition = looksLikeDefaultSeed
+    ? { nodes: [], edges: [], ui: { positions: {} } }
+    : definition;
+
+  const positions = cleanedDefinition.ui?.positions || {};
+  const nodes: BuilderNode[] = (cleanedDefinition.nodes || []).map((node, idx) => ({
     id: node.id,
     nodeType: node.type,
     category: inferCategory(node.type),
@@ -151,7 +230,7 @@ function hydrateState(definition: WorkflowDefinition): WorkflowState {
       },
   }));
 
-  const edges: BuilderEdge[] = (definition.edges || []).map((edge, idx) => ({
+  const edges: BuilderEdge[] = (cleanedDefinition.edges || []).map((edge, idx) => ({
     id: edge.from + "-" + edge.to + "-" + idx,
     from: edge.from,
     to: edge.to,
@@ -168,28 +247,42 @@ function toReactFlowNodes(nodes: BuilderNode[]): FlowNode[] {
     data: {
       label: templateByType[node.nodeType]?.label || node.nodeType,
     },
-    type: "default",
+    sourcePosition: Position.Bottom,
+    targetPosition: Position.Top,
+    type: "custom",
     style: {
-      background: "#ff0000",
-      color: "#ffffff",
-      border: "5px solid #000000",
-      padding: "20px",
-      fontSize: "16px",
-      fontWeight: "bold",
-      minWidth: "150px",
+      background: "#ffffff",
+      color: "#111827",
+      border: "2px solid #3b82f6",
+      padding: "12px",
+      fontSize: "14px",
+      fontWeight: 600,
+      minWidth: "140px",
+      minHeight: "70px",
+      boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+      borderRadius: "6px",
     },
   }));
 }
 
 function toReactFlowEdges(edges: BuilderEdge[]): FlowEdge[] {
-  return edges.map((edge) => ({
+  const result = edges.map((edge) => ({
     id: edge.id,
     source: edge.from,
     target: edge.to,
+    sourceHandle: 'b',
+    targetHandle: 't',
+    type: 'custom',
     label: edge.condition || undefined,
     data: { condition: edge.condition },
-    animated: false,
+    animated: true,
+    style: { stroke: "#3b82f6", strokeWidth: 4 },
+    markerEnd: { type: MarkerType.ArrowClosed, color: "#3b82f6" },
   }));
+  console.log('🔵 toReactFlowEdges() - Converted edges:', result);
+  console.log('🔵 Edge type check:', result.map(e => ({ id: e.id, type: e.type })));
+  console.log('🔵 Edge count:', result.length);
+  return result;
 }
 
 function serializeDefinition(state: WorkflowState): WorkflowDefinition {
@@ -405,6 +498,7 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
   const [executing, setExecuting] = useState(false);
   const [executeMessage, setExecuteMessage] = useState<string | null>(null);
   const [flowInstance, setFlowInstance] = useState<ReactFlowInstance | null>(null);
+  const [showPalette, setShowPalette] = useState(false);
 
   useEffect(() => {
     if (flowInstance) {
@@ -415,12 +509,45 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
     }
   }, [flowInstance]);
 
+  // Force re-render after edges change to ensure paths are calculated
+  useEffect(() => {
+    if (flowInstance && state.edges.length > 0) {
+      const timer = setTimeout(() => {
+        console.log('Forcing edge update');
+        flowInstance.fitView({ padding: 0.3, duration: 0 });
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [state.edges, flowInstance]);
+
+  // Explicitly tell React Flow to recompute handle bounds when nodes or edges change
+  useEffect(() => {
+    if (!flowInstance) return;
+    const ids = new Set<string>();
+    state.nodes.forEach((n) => ids.add(n.id));
+    state.edges.forEach((e) => {
+      ids.add(e.from);
+      ids.add(e.to);
+    });
+    ids.forEach((id) => {
+      try {
+        flowInstance.updateNodeInternals(id);
+      } catch (e) {
+        // no-op
+      }
+    });
+  }, [flowInstance, state.nodes, state.edges]);
+
   const flowNodes = useMemo(() => {
     const nodes = toReactFlowNodes(state.nodes);
+    console.log('Flow nodes:', nodes);
     return nodes;
   }, [state.nodes]);
   const flowEdges = useMemo(() => {
     const edges = toReactFlowEdges(state.edges);
+    console.log('Flow edges:', edges);
+    console.log('🔴 Available edgeTypes:', Object.keys(edgeTypes));
+    console.log('🔴 flowEdges with types:', edges.map(e => ({ id: e.id, type: e.type })));
     return edges;
   }, [state.edges]);
 
@@ -457,6 +584,10 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
   const onConnect = useCallback((connection: Connection) => {
     setState((prev) => {
       if (!connection.source || !connection.target) return prev;
+      const exists = prev.edges.some(
+        (e) => e.from === connection.source && e.to === connection.target
+      );
+      if (exists) return prev;
       const newEdge: BuilderEdge = {
         id: `e-${nanoid(6)}`,
         from: connection.source,
@@ -593,17 +724,9 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
                 </Button>
               </div>
               <div className="flex flex-wrap items-center gap-3 text-sm">
-                <span className="font-mono text-xs text-muted-foreground">Add node:</span>
-                {NODE_LIBRARY.map((tmpl) => (
-                  <Button
-                    key={tmpl.key}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => addNode(tmpl.key)}
-                  >
-                    {tmpl.label}
-                  </Button>
-                ))}
+                <span className="font-mono text-xs text-muted-foreground">
+                  Use the + Node palette on the canvas to add blocks.
+                </span>
               </div>
             </div>
           </CardContent>
@@ -611,20 +734,79 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
 
         <div className="grid grid-cols-12 gap-4">
           <div className="col-span-8 space-y-2">
-            <div className="border rounded-lg" style={{ height: "720px", width: "100%", background: "#fafafa" }}>
+            <div
+              className="border rounded-lg relative"
+              style={{ height: "720px", width: "100%", background: "#000000" }}
+            >
+              <div className="absolute left-3 top-3 z-50 flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="shadow"
+                  onClick={() => setShowPalette((open) => !open)}
+                >
+                  {showPalette ? "Close palette" : "+ Add node"}
+                </Button>
+              </div>
+
+              {showPalette && (
+                <div className="absolute left-3 top-12 z-50 w-80 max-h-[480px] overflow-y-auto rounded-lg border bg-white shadow-xl">
+                  <div className="flex items-center justify-between px-3 py-2 border-b">
+                    <span className="text-sm font-semibold">Node library</span>
+                    <Button variant="ghost" size="sm" onClick={() => setShowPalette(false)}>
+                      Close
+                    </Button>
+                  </div>
+                  <div className="p-3 grid grid-cols-1 gap-2">
+                    {NODE_LIBRARY.map((tmpl) => (
+                      <button
+                        key={tmpl.key}
+                        className="flex w-full items-center justify-between rounded border px-3 py-2 text-left text-sm hover:bg-slate-50"
+                        onClick={() => {
+                          addNode(tmpl.key);
+                          setShowPalette(false);
+                        }}
+                      >
+                        <span className="font-medium">{tmpl.label}</span>
+                        <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                          {tmpl.category}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <ReactFlow
                 nodes={flowNodes}
                 edges={flowEdges}
+                nodeTypes={nodeTypes}
+                edgeTypes={edgeTypes}
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
-                onConnect={onConnect}
+                onConnect={(connection) => {
+                  console.log('🔗 onConnect called:', connection);
+                  console.log('🔗 Current nodes:', flowNodes.map(n => n.id));
+                  console.log('🔗 Current edges before:', flowEdges);
+                  onConnect(connection);
+                }}
                 onInit={setFlowInstance}
                 onNodeClick={(_, node) => setSelectedNodeId(node.id)}
                 onPaneClick={() => setSelectedNodeId(null)}
                 fitView
                 fitViewOptions={{ padding: 0.3 }}
+                defaultEdgeOptions={{
+                  animated: true,
+                  style: { stroke: "#3b82f6", strokeWidth: 4 },
+                  markerEnd: { type: MarkerType.ArrowClosed, color: "#3b82f6" },
+                }}
+                minZoom={0.1}
+                maxZoom={4}
+                nodesDraggable={true}
+                nodesConnectable={true}
+                elementsSelectable={true}
               >
-                <Background color="#ccc" />
+                <Background color="#303030" />
                 <Controls />
               </ReactFlow>
               <div className="px-3 py-2 border-t bg-muted/40 text-xs text-muted-foreground space-y-1">
