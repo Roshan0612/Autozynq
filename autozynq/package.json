@@ -10,6 +10,8 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "nodemailer": "^7.0.12",
+      "reactflow": "^11.11.2",
     "@auth/prisma-adapter": "^2.11.1",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@radix-ui/react-slot": "^1.2.4",
@@ -23,7 +25,6 @@
     "next-themes": "^0.4.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "reactflow": "^11.11.2",
     "tailwind-merge": "^3.4.0",
     "zod": "^3.24.1"
   },

@@ -21,74 +21,74 @@ import ReactFlow, {
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { nanoid } from "nanoid";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { WorkflowDefinition } from "@/lib/workflow/schema";
 
-// Custom node component with a single container and positioned handles
+// Custom node component - professional dark theme
 function CustomNode({ data }: { data: any }) {
+  const categoryColors: Record<string, { bg: string; border: string; text: string }> = {
+    trigger: { bg: "#1e3a8a", border: "#3b82f6", text: "#93c5fd" },
+    action: { bg: "#1f2937", border: "#6b7280", text: "#d1d5db" },
+    logic: { bg: "#4c1d95", border: "#a78bfa", text: "#e9d5ff" },
+  };
+
+  const colors = categoryColors[data.category] || categoryColors.action;
+
   return (
     <div
       style={{
         position: "relative",
-        background: "#ffffff",
-        border: "2px solid #3b82f6",
-        padding: "12px",
-        color: "#111827",
-        fontSize: "14px",
-        fontWeight: 600,
+        background: colors.bg,
+        border: `2px solid ${colors.border}`,
+        padding: "12px 16px",
+        color: colors.text,
+        fontSize: "13px",
+        fontWeight: 500,
         minWidth: "140px",
-        minHeight: "70px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
         borderRadius: "6px",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+        boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
+        pointerEvents: "auto",
+        cursor: "grab",
+        textAlign: "center",
       }}
     >
       <Handle
         type="target"
         position={Position.Top}
         isConnectable
-        id="t"
-        style={{ background: "#3b82f6", width: 12, height: 12, border: "2px solid #1e40af" }}
+        style={{ background: colors.border, width: 10, height: 10, border: "2px solid #000" }}
       />
-      {data.label || "Node"}
+      <div style={{ fontWeight: 600, marginBottom: "4px" }}>{data.label || "Node"}</div>
+      <div style={{ fontSize: "11px", opacity: 0.8 }}>{data.nodeType}</div>
       <Handle
         type="source"
         position={Position.Bottom}
         isConnectable
-        id="b"
-        style={{ background: "#3b82f6", width: 12, height: 12, border: "2px solid #1e40af" }}
+        style={{ background: colors.border, width: 10, height: 10, border: "2px solid #000" }}
       />
     </div>
   );
 }
 
-// Custom edge component that explicitly renders paths
+// Professional edge component
 function CustomEdge({
   id,
   sourceX,
   sourceY,
   targetX,
   targetY,
-  sourcePosition,
-  targetPosition,
   markerEnd,
   style,
+  data,
 }: EdgeProps) {
-  console.log('🔴 CustomEdge rendering for:', id);
-  console.log('🔴 Coords:', { sourceX, sourceY, targetX, targetY });
-  
   const [edgePath] = getStraightPath({
     sourceX,
     sourceY,
     targetX,
     targetY,
   });
-  
-  console.log('🔴 Edge path computed:', edgePath);
-  console.log('🔴 markerEnd:', markerEnd);
 
   return (
     <BaseEdge
@@ -96,16 +96,14 @@ function CustomEdge({
       markerEnd={markerEnd}
       style={{
         ...style,
-        stroke: "#3b82f6",
-        strokeWidth: 4,
-        opacity: 1,
-        visibility: "visible",
+        stroke: "#4f46e5",
+        strokeWidth: 2.5,
+        opacity: 0.8,
       }}
     />
   );
 }
 
-// Stable nodeTypes object - defined outside component to prevent recreation
 const nodeTypes = {
   custom: CustomNode,
 };
@@ -124,7 +122,7 @@ type NodeCategory = "trigger" | "action" | "logic";
 
 type BuilderNode = {
   id: string;
-  nodeType: string; // Registry node type (e.g., action.http.request)
+  nodeType: string;
   category: NodeCategory;
   config: Record<string, any>;
   position: { x: number; y: number };
@@ -185,11 +183,74 @@ const NODE_LIBRARY: NodeTemplate[] = [
     defaultConfig: { message: "", level: "info" },
   },
   {
+    key: "ai-generate",
+    label: "AI Generate Text",
+    category: "action",
+    nodeType: "ai.action.generateText",
+    defaultConfig: {
+      provider: "groq",
+      model: "llama-3.3-70b-versatile",
+      prompt: "",
+      temperature: 0.7,
+      maxTokens: 500,
+    },
+  },
+  {
+    key: "ai-generate-email",
+    label: "AI Generate Email",
+    category: "action",
+    nodeType: "ai.action.generateEmail",
+    defaultConfig: {
+      instructions: "Write a short, friendly acknowledgement email.",
+    },
+  },
+  {
     key: "if",
     label: "If / Condition",
     category: "logic",
     nodeType: "logic.condition",
     defaultConfig: { operator: "equals", value: "" },
+  },
+  // Google Forms
+  {
+    key: "gf-new-response",
+    label: "Google Forms – New Response",
+    category: "trigger",
+    nodeType: "google_forms.trigger.newResponse",
+    defaultConfig: { connectionId: "stub-conn", formId: "form_123", since: undefined },
+  },
+  {
+    key: "gf-get-form",
+    label: "Google Forms – Get Form",
+    category: "action",
+    nodeType: "google_forms.action.getForm",
+    defaultConfig: { connectionId: "stub-conn", formId: "form_123" },
+  },
+  {
+    key: "gf-get-response",
+    label: "Google Forms – Get Response",
+    category: "action",
+    nodeType: "google_forms.action.getResponse",
+    defaultConfig: { connectionId: "stub-conn", formId: "form_123", responseId: "resp_1" },
+  },
+  {
+    key: "gf-list-responses",
+    label: "Google Forms – List Responses",
+    category: "action",
+    nodeType: "google_forms.action.listResponses",
+    defaultConfig: { connectionId: "stub-conn", formId: "form_123", limit: 2, since: undefined },
+  },
+  {
+    key: "gmail-send-email",
+    label: "Gmail – Send Email",
+    category: "action",
+    nodeType: "gmail.action.sendEmail",
+    defaultConfig: {
+      connectionId: "stub-conn",
+      to: "{{answers.Email}}",
+      subject: "{{subject}}",
+      body: "{{body}}",
+    },
   },
 ];
 
@@ -198,39 +259,29 @@ const templateByType = NODE_LIBRARY.reduce<Record<string, NodeTemplate>>((acc, t
   return acc;
 }, {});
 
-function inferCategory(nodeType: string): NodeCategory {
+function inferCategory(nodeType?: string): NodeCategory {
+  if (!nodeType) return "action";
   return templateByType[nodeType]?.category || (nodeType.includes("logic") ? "logic" : "action");
 }
 
 function hydrateState(definition: WorkflowDefinition): WorkflowState {
-  // Remove old default seed (manual trigger + log) so builder opens empty unless user added nodes
-  const looksLikeDefaultSeed =
-    Array.isArray(definition.nodes) &&
-    definition.nodes.length === 2 &&
-    definition.edges?.length === 1 &&
-    definition.nodes.some((n) => n.id === "trigger1" && n.type === "trigger.manual") &&
-    definition.nodes.some((n) => n.id === "log1" && n.type === "action.log.debug") &&
-    definition.edges[0]?.from === "trigger1" &&
-    definition.edges[0]?.to === "log1";
+  const positions = definition.ui?.positions || {};
+  const nodes: BuilderNode[] = (definition.nodes || []).map((node, idx) => {
+    const nodeType = (node as any).type || (node as any).nodeType || "";
+    return {
+      id: node.id,
+      nodeType,
+      category: inferCategory(nodeType),
+      config: (node.config as Record<string, any>) ?? {},
+      position:
+        positions[node.id] || {
+          x: 100 + (idx % 4) * 200,
+          y: 80 + Math.floor(idx / 4) * 140,
+        },
+    };
+  });
 
-  const cleanedDefinition: WorkflowDefinition = looksLikeDefaultSeed
-    ? { nodes: [], edges: [], ui: { positions: {} } }
-    : definition;
-
-  const positions = cleanedDefinition.ui?.positions || {};
-  const nodes: BuilderNode[] = (cleanedDefinition.nodes || []).map((node, idx) => ({
-    id: node.id,
-    nodeType: node.type,
-    category: inferCategory(node.type),
-    config: (node.config as Record<string, any>) ?? {},
-    position:
-      positions[node.id] || {
-        x: 100 + (idx % 4) * 200,
-        y: 80 + Math.floor(idx / 4) * 140,
-      },
-  }));
-
-  const edges: BuilderEdge[] = (cleanedDefinition.edges || []).map((edge, idx) => ({
+  const edges: BuilderEdge[] = (definition.edges || []).map((edge, idx) => ({
     id: edge.from + "-" + edge.to + "-" + idx,
     from: edge.from,
     to: edge.to,
@@ -240,33 +291,27 @@ function hydrateState(definition: WorkflowDefinition): WorkflowState {
   return { nodes, edges };
 }
 
-function toReactFlowNodes(nodes: BuilderNode[]): FlowNode[] {
+function toReactFlowNodes(
+  nodes: BuilderNode[],
+  edges: BuilderEdge[],
+  onAddNode?: (sourceNodeId?: string) => void
+): FlowNode[] {
   return nodes.map((node) => ({
     id: node.id,
     position: node.position,
     data: {
       label: templateByType[node.nodeType]?.label || node.nodeType,
+      onAddNode: () => onAddNode?.(node.id),
+      canAdd: !edges.some((e) => e.from === node.id),
     },
     sourcePosition: Position.Bottom,
     targetPosition: Position.Top,
     type: "custom",
-    style: {
-      background: "#ffffff",
-      color: "#111827",
-      border: "2px solid #3b82f6",
-      padding: "12px",
-      fontSize: "14px",
-      fontWeight: 600,
-      minWidth: "140px",
-      minHeight: "70px",
-      boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-      borderRadius: "6px",
-    },
   }));
 }
 
 function toReactFlowEdges(edges: BuilderEdge[]): FlowEdge[] {
-  const result = edges.map((edge) => ({
+  return edges.map((edge) => ({
     id: edge.id,
     source: edge.from,
     target: edge.to,
@@ -279,10 +324,6 @@ function toReactFlowEdges(edges: BuilderEdge[]): FlowEdge[] {
     style: { stroke: "#3b82f6", strokeWidth: 4 },
     markerEnd: { type: MarkerType.ArrowClosed, color: "#3b82f6" },
   }));
-  console.log('🔵 toReactFlowEdges() - Converted edges:', result);
-  console.log('🔵 Edge type check:', result.map(e => ({ id: e.id, type: e.type })));
-  console.log('🔵 Edge count:', result.length);
-  return result;
 }
 
 function serializeDefinition(state: WorkflowState): WorkflowDefinition {
@@ -326,6 +367,151 @@ function NodeConfigForm({
             placeholder="Optional description"
             className="w-full rounded border px-2 py-1 text-sm"
           />
+        </div>
+      );
+    case "google_forms.trigger.newResponse":
+      return (
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Connection ID</p>
+            <input
+              value={node.config.connectionId || ""}
+              onChange={(e) => onChange({ ...node.config, connectionId: e.target.value })}
+              placeholder="stub-conn"
+              className="w-full rounded border px-2 py-1 text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Form ID</p>
+            <input
+              value={node.config.formId || ""}
+              onChange={(e) => onChange({ ...node.config, formId: e.target.value })}
+              placeholder="form_123"
+              className="w-full rounded border px-2 py-1 text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Since (ISO, optional)</p>
+            <input
+              value={node.config.since || ""}
+              onChange={(e) => onChange({ ...node.config, since: e.target.value || undefined })}
+              placeholder="2024-01-01T00:00:00.000Z"
+              className="w-full rounded border px-2 py-1 text-sm"
+            />
+          </div>
+        </div>
+      );
+    case "ai.action.generateEmail":
+      return (
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Instructions (optional)</p>
+            <textarea
+              value={node.config.instructions || ""}
+              onChange={(e) => onChange({ ...node.config, instructions: e.target.value })}
+              placeholder="Write a short, friendly acknowledgement email."
+              className="w-full rounded border px-2 py-2 text-sm font-mono"
+              rows={5}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">This node outputs {"{{subject}}"} and {"{{body}}"}.</p>
+        </div>
+      );
+    case "google_forms.action.getForm":
+      return (
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Connection ID</p>
+            <input
+              value={node.config.connectionId || ""}
+              onChange={(e) => onChange({ ...node.config, connectionId: e.target.value })}
+              placeholder="stub-conn"
+              className="w-full rounded border px-2 py-1 text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Form ID</p>
+            <input
+              value={node.config.formId || ""}
+              onChange={(e) => onChange({ ...node.config, formId: e.target.value })}
+              placeholder="form_123"
+              className="w-full rounded border px-2 py-1 text-sm"
+            />
+          </div>
+        </div>
+      );
+    case "google_forms.action.getResponse":
+      return (
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Connection ID</p>
+            <input
+              value={node.config.connectionId || ""}
+              onChange={(e) => onChange({ ...node.config, connectionId: e.target.value })}
+              placeholder="stub-conn"
+              className="w-full rounded border px-2 py-1 text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Form ID</p>
+            <input
+              value={node.config.formId || ""}
+              onChange={(e) => onChange({ ...node.config, formId: e.target.value })}
+              placeholder="form_123"
+              className="w-full rounded border px-2 py-1 text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Response ID</p>
+            <input
+              value={node.config.responseId || ""}
+              onChange={(e) => onChange({ ...node.config, responseId: e.target.value })}
+              placeholder="resp_1"
+              className="w-full rounded border px-2 py-1 text-sm"
+            />
+          </div>
+        </div>
+      );
+    case "google_forms.action.listResponses":
+      return (
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Connection ID</p>
+            <input
+              value={node.config.connectionId || ""}
+              onChange={(e) => onChange({ ...node.config, connectionId: e.target.value })}
+              placeholder="stub-conn"
+              className="w-full rounded border px-2 py-1 text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Form ID</p>
+            <input
+              value={node.config.formId || ""}
+              onChange={(e) => onChange({ ...node.config, formId: e.target.value })}
+              placeholder="form_123"
+              className="w-full rounded border px-2 py-1 text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Limit (optional)</p>
+            <input
+              type="number"
+              value={node.config.limit ?? ""}
+              onChange={(e) => onChange({ ...node.config, limit: e.target.value ? parseInt(e.target.value) : undefined })}
+              placeholder="2"
+              className="w-full rounded border px-2 py-1 text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Since (ISO, optional)</p>
+            <input
+              value={node.config.since || ""}
+              onChange={(e) => onChange({ ...node.config, since: e.target.value || undefined })}
+              placeholder="2024-01-01T00:00:00.000Z"
+              className="w-full rounded border px-2 py-1 text-sm"
+            />
+          </div>
         </div>
       );
     case "trigger.manual":
@@ -411,7 +597,7 @@ function NodeConfigForm({
                   onChange({ ...node.config, body: raw });
                 }
               }}
-                placeholder='{"key": "value"}'
+              placeholder='{"key": "value"}'
             />
           </div>
         </div>
@@ -439,6 +625,150 @@ function NodeConfigForm({
               <option value="warn">warn</option>
               <option value="error">error</option>
             </select>
+          </div>
+        </div>
+      );
+    case "gmail.action.sendEmail":
+      return (
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Connection ID</p>
+            <input
+              value={node.config.connectionId || ""}
+              onChange={(e) => onChange({ ...node.config, connectionId: e.target.value })}
+              placeholder="stub-conn"
+              className="w-full rounded border px-2 py-1 text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">To</p>
+            <input
+              value={node.config.to || ""}
+              onChange={(e) => onChange({ ...node.config, to: e.target.value })}
+              placeholder="{{answers.Email}} or someone@example.com"
+              className="w-full rounded border px-2 py-1 text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Subject</p>
+            <input
+              value={node.config.subject || ""}
+              onChange={(e) => onChange({ ...node.config, subject: e.target.value })}
+              placeholder="{{subject}}"
+              className="w-full rounded border px-2 py-1 text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Body</p>
+            <textarea
+              value={node.config.body || ""}
+              onChange={(e) => onChange({ ...node.config, body: e.target.value })}
+              placeholder="{{body}}"
+              className="w-full rounded border px-2 py-2 text-sm font-mono"
+              rows={6}
+            />
+            <p className="text-xs text-muted-foreground">Supports {"{{path}}"} from previous output (e.g., {"{{answers.Email}}"}, {"{{subject}}"}, {"{{body}}"}).</p>
+          </div>
+        </div>
+      );
+    case "ai.action.generateText":
+      const provider = node.config.provider || "groq";
+      const groqModels = [
+        { value: "llama-3.3-70b-versatile", label: "Llama 3.3 70B (Fastest)" },
+        { value: "llama-3.1-70b-versatile", label: "Llama 3.1 70B" },
+        { value: "mixtral-8x7b-32768", label: "Mixtral 8x7B" },
+        { value: "gemma2-9b-it", label: "Gemma 2 9B" },
+      ];
+      const geminiModels = [
+        { value: "gemini-2.0-flash-lite", label: "Gemini 2.0 Flash Lite (Free Tier)" },
+        { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
+        { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
+        { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
+      ];
+      const openaiModels = [
+        { value: "gpt-4o-mini", label: "GPT-4o Mini (Fastest)" },
+        { value: "gpt-4o", label: "GPT-4o" },
+        { value: "gpt-4-turbo", label: "GPT-4 Turbo" },
+        { value: "gpt-3.5-turbo", label: "GPT-3.5 Turbo" },
+      ];
+      const currentModels = provider === "groq" ? groqModels : provider === "gemini" ? geminiModels : openaiModels;
+      const defaultModel = provider === "groq" ? "llama-3.3-70b-versatile" : provider === "gemini" ? "gemini-2.0-flash-lite" : "gpt-4o-mini";
+
+      return (
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Provider</p>
+            <select
+              className="w-full rounded border px-2 py-1 text-sm"
+              value={provider}
+              onChange={(e) => {
+                const newProvider = e.target.value;
+                const newModel = newProvider === "groq" ? "llama-3.3-70b-versatile" : newProvider === "gemini" ? "gemini-2.0-flash-lite" : "gpt-4o-mini";
+                onChange({ ...node.config, provider: newProvider, model: newModel });
+              }}
+            >
+              <option value="groq">Groq (Fast LLMs)</option>
+              <option value="gemini">Google Gemini</option>
+              <option value="openai">OpenAI</option>
+            </select>
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Model</p>
+            <select
+              className="w-full rounded border px-2 py-1 text-sm"
+              value={node.config.model || defaultModel}
+              onChange={(e) => onChange({ ...node.config, model: e.target.value })}
+            >
+              {currentModels.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">System Prompt (optional)</p>
+            <textarea
+              value={node.config.systemPrompt || ""}
+              onChange={(e) => onChange({ ...node.config, systemPrompt: e.target.value })}
+              placeholder="You are a helpful assistant..."
+              className="w-full rounded border px-2 py-2 text-sm font-mono"
+              rows={3}
+            />
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Prompt *</p>
+            <textarea
+              value={node.config.prompt || ""}
+              onChange={(e) => onChange({ ...node.config, prompt: e.target.value })}
+              placeholder="Generate a creative blog post title about..."
+              className="w-full rounded border px-2 py-2 text-sm font-mono"
+              rows={5}
+            />
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Temperature ({node.config.temperature ?? 0.7})</p>
+            <input
+              type="range"
+              min="0"
+              max="2"
+              step="0.1"
+              value={node.config.temperature ?? 0.7}
+              onChange={(e) => onChange({ ...node.config, temperature: parseFloat(e.target.value) })}
+              className="w-full"
+            />
+            <p className="text-xs text-muted-foreground">Lower = more focused, Higher = more creative</p>
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Max Tokens</p>
+            <input
+              type="number"
+              min="1"
+              max="8000"
+              value={node.config.maxTokens ?? 500}
+              onChange={(e) => onChange({ ...node.config, maxTokens: parseInt(e.target.value) || 500 })}
+              className="w-full rounded border px-2 py-1 text-sm"
+            />
           </div>
         </div>
       );
@@ -499,6 +829,8 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
   const [executeMessage, setExecuteMessage] = useState<string | null>(null);
   const [flowInstance, setFlowInstance] = useState<ReactFlowInstance | null>(null);
   const [showPalette, setShowPalette] = useState(false);
+  const [paletteSourceNode, setPaletteSourceNode] = useState<string | null>(null);
+  const [darkMode, setDarkMode] = useState(true);
 
   useEffect(() => {
     if (flowInstance) {
@@ -509,77 +841,75 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
     }
   }, [flowInstance]);
 
-  // Force re-render after edges change to ensure paths are calculated
-  useEffect(() => {
-    if (flowInstance && state.edges.length > 0) {
-      const timer = setTimeout(() => {
-        console.log('Forcing edge update');
-        flowInstance.fitView({ padding: 0.3, duration: 0 });
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [state.edges, flowInstance]);
-
-  // Explicitly tell React Flow to recompute handle bounds when nodes or edges change
-  useEffect(() => {
-    if (!flowInstance) return;
-    const ids = new Set<string>();
-    state.nodes.forEach((n) => ids.add(n.id));
-    state.edges.forEach((e) => {
-      ids.add(e.from);
-      ids.add(e.to);
-    });
-    ids.forEach((id) => {
-      try {
-        flowInstance.updateNodeInternals(id);
-      } catch (e) {
-        // no-op
+  const addNode = useCallback((templateKey: string) => {
+    const template = NODE_LIBRARY.find((t) => t.key === templateKey);
+    if (!template) return;
+    
+    setState((prev) => {
+      const newNode: BuilderNode = {
+        id: `node_${nanoid(6)}`,
+        nodeType: template.nodeType,
+        category: template.category,
+        config: { ...template.defaultConfig },
+        position: { x: 120 + prev.nodes.length * 40, y: 120 + prev.nodes.length * 30 },
+      };
+      
+      const newState = { ...prev, nodes: [...prev.nodes, newNode] };
+      
+      if (paletteSourceNode && paletteSourceNode !== newNode.id) {
+        const newEdge: BuilderEdge = {
+          id: `e-${nanoid(6)}`,
+          from: paletteSourceNode,
+          to: newNode.id,
+        };
+        newState.edges = [...newState.edges, newEdge];
+        setPaletteSourceNode(null);
       }
+      
+      return newState;
     });
-  }, [flowInstance, state.nodes, state.edges]);
+  }, [paletteSourceNode]);
 
-  const flowNodes = useMemo(() => {
-    const nodes = toReactFlowNodes(state.nodes);
-    console.log('Flow nodes:', nodes);
-    return nodes;
-  }, [state.nodes]);
-  const flowEdges = useMemo(() => {
-    const edges = toReactFlowEdges(state.edges);
-    console.log('Flow edges:', edges);
-    console.log('🔴 Available edgeTypes:', Object.keys(edgeTypes));
-    console.log('🔴 flowEdges with types:', edges.map(e => ({ id: e.id, type: e.type })));
-    return edges;
-  }, [state.edges]);
+  const handleAddNodeFromPlus = useCallback((sourceNodeId?: string) => {
+    if (sourceNodeId) {
+      setPaletteSourceNode(sourceNodeId);
+      setShowPalette(true);
+    } else {
+      setPaletteSourceNode(null);
+      setShowPalette(true);
+    }
+  }, []);
 
-  const onNodesChange = useCallback(
-    (changes) => {
-      setState((prev) => {
-        const updatedFlow = applyNodeChanges(changes, toReactFlowNodes(prev.nodes));
-        const updatedNodes: BuilderNode[] = prev.nodes.map((node) => {
-          const match = updatedFlow.find((n) => n.id === node.id);
-          return match ? { ...node, position: match.position } : node;
-        });
-        return { ...prev, nodes: updatedNodes };
-      });
-    },
-    []
+  const flowNodes = useMemo(() => 
+    toReactFlowNodes(state.nodes, state.edges, handleAddNodeFromPlus),
+    [state.nodes, state.edges, handleAddNodeFromPlus]
   );
+  
+  const flowEdges = useMemo(() => toReactFlowEdges(state.edges), [state.edges]);
 
-  const onEdgesChange = useCallback(
-    (changes) => {
-      setState((prev) => {
-        const updatedFlow = applyEdgeChanges(changes, toReactFlowEdges(prev.edges));
-        const updatedEdges: BuilderEdge[] = updatedFlow.map((edge) => ({
-          id: edge.id,
-          from: edge.source,
-          to: edge.target,
-          condition: (edge.data as any)?.condition || edge.label || undefined,
-        }));
-        return { ...prev, edges: updatedEdges };
+  const onNodesChange = useCallback((changes: any) => {
+    setState((prev) => {
+      const updatedFlow = applyNodeChanges(changes, toReactFlowNodes(prev.nodes, prev.edges));
+      const updatedNodes: BuilderNode[] = prev.nodes.map((node) => {
+        const match = updatedFlow.find((n) => n.id === node.id);
+        return match ? { ...node, position: match.position } : node;
       });
-    },
-    []
-  );
+      return { ...prev, nodes: updatedNodes };
+    });
+  }, []);
+
+  const onEdgesChange = useCallback((changes: any) => {
+    setState((prev) => {
+      const updatedFlow = applyEdgeChanges(changes, toReactFlowEdges(prev.edges));
+      const updatedEdges: BuilderEdge[] = updatedFlow.map((edge) => ({
+        id: edge.id,
+        from: edge.source,
+        to: edge.target,
+        condition: (edge.data as any)?.condition || edge.label || undefined,
+      }));
+      return { ...prev, edges: updatedEdges };
+    });
+  }, []);
 
   const onConnect = useCallback((connection: Connection) => {
     setState((prev) => {
@@ -594,23 +924,6 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
         to: connection.target,
       };
       return { ...prev, edges: [...prev.edges, newEdge] };
-    });
-  }, []);
-
-  const addNode = useCallback((templateKey: string) => {
-    const template = NODE_LIBRARY.find((t) => t.key === templateKey);
-    if (!template) return;
-    console.log("Adding node from template:", templateKey, template);
-    setState((prev) => {
-      const newNode: BuilderNode = {
-        id: `node_${nanoid(6)}`,
-        nodeType: template.nodeType,
-        category: template.category,
-        config: { ...template.defaultConfig },
-        position: { x: 120 + prev.nodes.length * 40, y: 120 + prev.nodes.length * 30 },
-      };
-      console.log("New state nodes count:", prev.nodes.length + 1, newNode);
-      return { ...prev, nodes: [...prev.nodes, newNode] };
     });
   }, []);
 
@@ -692,13 +1005,21 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
 
   return (
     <ReactFlowProvider>
-      <div className="container mx-auto py-6 px-4 max-w-screen-2xl">
+      <div className="w-full h-screen flex flex-col py-4 px-4">
         <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-sm text-muted-foreground">Workflow Builder</p>
             <h1 className="text-2xl font-mono font-bold">{props.workflowName}</h1>
           </div>
           <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setDarkMode(!darkMode)}
+              className="mr-2"
+            >
+              {darkMode ? "🌙 Dark" : "☀️ Light"}
+            </Button>
             <Button variant="secondary" onClick={handleExecute} disabled={executing}>
               {executing ? "Executing..." : "Execute Workflow"}
             </Button>
@@ -708,52 +1029,80 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
           </div>
         </div>
 
-        <Card className="mb-4">
-          <CardContent className="py-3">
-            <div className="space-y-3">
-              <div className="flex flex-wrap items-center gap-3 text-sm">
-                <span className="font-mono text-xs text-muted-foreground">Test:</span>
+        <div className="grid grid-cols-12 gap-3 flex-1">
+          {/* Left Palette - Drag and Drop Nodes */}
+          <div className="col-span-2 bg-slate-900 rounded-lg border border-slate-800 p-3 h-fit max-h-full overflow-y-auto">
+            <div className="text-xs font-semibold text-slate-300 uppercase mb-3">Add Nodes</div>
+            <div className="space-y-2">
+              {NODE_LIBRARY.map((tmpl) => (
+                <div
+                  key={tmpl.key}
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.effectAllowed = "move";
+                    e.dataTransfer.setData("node-template", JSON.stringify(tmpl));
+                  }}
+                  className="p-3 bg-slate-800 border border-slate-700 rounded cursor-move hover:bg-slate-700 hover:border-slate-600 transition-colors text-xs font-medium text-slate-200"
+                >
+                  <div className="font-semibold">{tmpl.label}</div>
+                  <div className="text-slate-400 text-[11px]">{tmpl.category}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Canvas and Config */}
+          <div className="col-span-7 space-y-2 flex flex-col">
+            <div
+              className="border rounded-lg relative flex-1"
+              style={{ background: darkMode ? "#1a1a1a" : "#fafafa" }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                const data = e.dataTransfer.getData("node-template");
+                if (data && flowInstance) {
+                  const template = JSON.parse(data);
+                  const pos = flowInstance.screenToFlowPosition({
+                    x: e.clientX,
+                    y: e.clientY,
+                  });
+                  
+                  setState((prev) => {
+                    const newNode: BuilderNode = {
+                      id: `node_${nanoid(6)}`,
+                      nodeType: template.nodeType,
+                      category: template.category,
+                      config: { ...template.defaultConfig },
+                      position: pos,
+                    };
+                    return { ...prev, nodes: [...prev.nodes, newNode] };
+                  });
+                }
+              }}
+            >
+              <div style={{ position: "absolute", top: "10px", left: "10px", zIndex: 50 }}>
                 <Button
-                  variant="outline"
                   size="sm"
                   onClick={() => {
-                    console.log("Test button clicked! Current state nodes:", state.nodes.length);
+                    setPaletteSourceNode(null);
+                    setShowPalette(true);
                   }}
                 >
-                  Test Click (check console)
-                </Button>
-              </div>
-              <div className="flex flex-wrap items-center gap-3 text-sm">
-                <span className="font-mono text-xs text-muted-foreground">
-                  Use the + Node palette on the canvas to add blocks.
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="grid grid-cols-12 gap-4">
-          <div className="col-span-8 space-y-2">
-            <div
-              className="border rounded-lg relative"
-              style={{ height: "720px", width: "100%", background: "#000000" }}
-            >
-              <div className="absolute left-3 top-3 z-50 flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="shadow"
-                  onClick={() => setShowPalette((open) => !open)}
-                >
-                  {showPalette ? "Close palette" : "+ Add node"}
+                  <Plus size={14} className="mr-1" /> Add Node
                 </Button>
               </div>
 
               {showPalette && (
-                <div className="absolute left-3 top-12 z-50 w-80 max-h-[480px] overflow-y-auto rounded-lg border bg-white shadow-xl">
-                  <div className="flex items-center justify-between px-3 py-2 border-b">
-                    <span className="text-sm font-semibold">Node library</span>
-                    <Button variant="ghost" size="sm" onClick={() => setShowPalette(false)}>
+                <div className="absolute left-3 top-12 z-50 w-80 max-h-[480px] overflow-y-auto rounded-lg border bg-slate-900 border-slate-700 shadow-xl">
+                  <div className="flex items-center justify-between px-3 py-2 border-b border-slate-700 bg-slate-800">
+                    <span className="text-sm font-semibold text-slate-200">Add Node</span>
+                    <Button variant="ghost" size="sm" onClick={() => {
+                      setShowPalette(false);
+                      setPaletteSourceNode(null);
+                    }} className="text-slate-400 hover:text-slate-200">
                       Close
                     </Button>
                   </div>
@@ -761,18 +1110,42 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
                     {NODE_LIBRARY.map((tmpl) => (
                       <button
                         key={tmpl.key}
-                        className="flex w-full items-center justify-between rounded border px-3 py-2 text-left text-sm hover:bg-slate-50"
+                        className="flex w-full items-center justify-between rounded border border-slate-700 px-3 py-2 text-left text-sm bg-slate-800 hover:bg-slate-700 hover:border-slate-600 text-slate-200"
                         onClick={() => {
                           addNode(tmpl.key);
                           setShowPalette(false);
                         }}
                       >
                         <span className="font-medium">{tmpl.label}</span>
-                        <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                        <span className="text-[11px] uppercase tracking-wide text-slate-400">
                           {tmpl.category}
                         </span>
                       </button>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {state.nodes.length === 0 && (
+                <div className="absolute inset-0 flex items-center justify-center" style={{ zIndex: 60 }}>
+                  <div className={`flex flex-col items-center gap-3 rounded-lg border border-dashed px-6 py-8 text-center ${
+                    darkMode 
+                      ? "border-slate-600 bg-slate-800 text-slate-200" 
+                      : "border-slate-300 bg-slate-50"
+                  }`}>
+                    <p className="font-medium">Drag nodes from the palette</p>
+                    <p className={`text-sm ${darkMode ? "text-slate-400" : "text-slate-600"}`}>or use the Add Node button</p>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        addNode("manual");
+                        setShowPalette(false);
+                      }}
+                      className="mt-2"
+                    >
+                      <Plus size={14} className="mr-1" /> Add node
+                    </Button>
                   </div>
                 </div>
               )}
@@ -784,12 +1157,7 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
                 edgeTypes={edgeTypes}
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
-                onConnect={(connection) => {
-                  console.log('🔗 onConnect called:', connection);
-                  console.log('🔗 Current nodes:', flowNodes.map(n => n.id));
-                  console.log('🔗 Current edges before:', flowEdges);
-                  onConnect(connection);
-                }}
+                onConnect={onConnect}
                 onInit={setFlowInstance}
                 onNodeClick={(_, node) => setSelectedNodeId(node.id)}
                 onPaneClick={() => setSelectedNodeId(null)}
@@ -802,93 +1170,52 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
                 }}
                 minZoom={0.1}
                 maxZoom={4}
-                nodesDraggable={true}
-                nodesConnectable={true}
-                elementsSelectable={true}
               >
-                <Background color="#303030" />
+                <Background color={darkMode ? "#2a2a2a" : "#e0e0e0"} />
                 <Controls />
               </ReactFlow>
-              <div className="px-3 py-2 border-t bg-muted/40 text-xs text-muted-foreground space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono">Nodes: {state.nodes.length}</span>
-                  <span className="font-mono">Edges: {state.edges.length}</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs"
-                    onClick={() => flowInstance?.fitView({ padding: 0.2 })}
-                  >
-                    Fit view
-                  </Button>
-                </div>
-                {state.nodes.length > 0 && (
-                  <div className="flex flex-wrap gap-3">
-                    {state.nodes.slice(0, 8).map((n) => (
-                      <span key={n.id} className="font-mono text-[10px]">
-                        {n.id}: ({Math.round(n.position.x)}, {Math.round(n.position.y)})
-                      </span>
-                    ))}
-                    {state.nodes.length > 8 && <span className="font-mono text-[10px]">…</span>}
-                  </div>
-                )}
-              </div>
             </div>
-
-            {/* Debug: List all nodes as text */}
-            {state.nodes.length > 0 && (
-              <Card className="bg-amber-50 border-amber-200">
-                <CardHeader className="py-2">
-                  <CardTitle className="text-xs">📍 Debug: Nodes in State</CardTitle>
-                </CardHeader>
-                <CardContent className="text-xs space-y-1">
-                  {state.nodes.map((n) => (
-                    <div key={n.id} className="font-mono">
-                      <strong>{n.id}</strong> ({n.nodeType})
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            )}
           </div>
 
-          <div className="col-span-4 space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-mono text-sm">Node Configuration</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {!selectedNode ? (
-                  <p className="text-sm text-muted-foreground">Select a node to edit its configuration.</p>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-mono text-sm">{selectedNode.id}</div>
-                        <div className="text-xs text-muted-foreground">{selectedNode.nodeType}</div>
+          {/* Right Config Panels */}
+          <div className="col-span-3">
+            <div className="space-y-4 max-h-full overflow-y-auto">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="font-mono text-sm">Node Configuration</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {!selectedNode ? (
+                    <p className="text-sm text-muted-foreground">Select a node to edit its configuration.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-mono text-sm">{selectedNode.id}</div>
+                          <div className="text-xs text-muted-foreground">{selectedNode.nodeType}</div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => removeNode(selectedNode.id)}
+                        >
+                          Delete
+                        </Button>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => removeNode(selectedNode.id)}
-                      >
-                        Delete
-                      </Button>
+                      <div className="border-t" />
+                      <NodeConfigForm
+                        node={selectedNode}
+                        onChange={(config) => updateNodeConfig(selectedNode.id, config)}
+                      />
                     </div>
-                    <div className="border-t" />
-                    <NodeConfigForm
-                      node={selectedNode}
-                      onChange={(config) => updateNodeConfig(selectedNode.id, config)}
-                    />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                  )}
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-mono text-sm">Edges</CardTitle>
-              </CardHeader>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="font-mono text-sm">Edges</CardTitle>
+                </CardHeader>
               <CardContent className="space-y-3">
                 {state.edges.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No edges. Connect nodes on the canvas.</p>
@@ -922,6 +1249,7 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
                 )}
               </CardContent>
             </Card>
+            </div>
 
             {saveMessage && (
               <Card className="border border-muted-foreground/40">
@@ -940,20 +1268,21 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
             )}
           </div>
         </div>
-
-        <div className="mt-6 text-xs text-muted-foreground font-mono">
-          <p>Tips:</p>
-          <ul className="list-disc list-inside space-y-1">
-            <li>Only one trigger should exist. Save validates via backend.</li>
-            <li>Use conditions (true/false) on edges from logic nodes.</li>
-            <li>HTTP body/headers accept JSON; invalid JSON saves as raw string.</li>
-          </ul>
-        </div>
       </div>
     </ReactFlowProvider>
   );
 }
 
 export default function WorkflowBuilderClient(props: WorkflowBuilderClientProps) {
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <div className="p-6 text-sm text-muted-foreground">Loading builder...</div>;
+  }
+
   return <WorkflowBuilderShell {...props} />;
 }

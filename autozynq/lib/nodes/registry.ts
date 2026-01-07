@@ -1,25 +1,32 @@
 import type { AutomationNode } from "./base";
 import { gmailNodes } from "./gmail";
+import { emailNodes } from "./email";
 import { slackNodes } from "./slack";
 import { ifConditionNode } from "./logic";
+import { googleFormsNodes } from "./google_forms";
 import { testPassthroughTrigger } from "./test";
 import { webhookTriggerNode } from "./core/webhook.trigger";
 import { manualTriggerNode } from "./core/manual.trigger";
 import { httpRequestNode } from "./core/http.action";
 import { logDebugNode } from "./core/log.action";
+import { generateTextAction, generateEmailAction } from "./ai";
 
 // Central registry of all automation nodes.
 // This is the single source of truth for node definitions.
 // Adding a new app requires: 1) create folder, 2) add import, 3) spread into registry.
 export const nodeRegistry: Record<string, AutomationNode> = {
   ...gmailNodes,
+  ...emailNodes,
   ...slackNodes,
+  ...googleFormsNodes,
   [ifConditionNode.type]: ifConditionNode,
   [testPassthroughTrigger.type]: testPassthroughTrigger,
    [webhookTriggerNode.type]: webhookTriggerNode,
    [manualTriggerNode.type]: manualTriggerNode,
    [httpRequestNode.type]: httpRequestNode,
    [logDebugNode.type]: logDebugNode,
+   [generateTextAction.type]: generateTextAction,
+  [generateEmailAction.type]: generateEmailAction,
 };
 
 // Helper to safely retrieve a node definition with error handling.

@@ -26,9 +26,15 @@ export function CreateWorkflowForm() {
         body: JSON.stringify({
           name: name.trim(),
           definition: {
-            nodes: [],
+            nodes: [
+              {
+                id: "trigger1",
+                type: "trigger.manual",
+                config: { payload: {} },
+              },
+            ],
             edges: [],
-            ui: { positions: {} },
+            ui: { positions: { trigger1: { x: 250, y: 100 } } },
           },
         }),
       });

@@ -1,0 +1,35 @@
+{state.nodes.length === 0 && !showPaletteForNode && (
+  <div
+    className="absolute inset-0 flex items-center justify-center"
+    style={{ zIndex: 60, pointerEvents: "auto" }}
+  >
+    <div
+      className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-slate-500/50 bg-slate-900/30 px-6 py-8 text-center text-slate-200"
+      style={{ pointerEvents: "auto" }}
+    >
+      <p className="font-medium">Start your workflow</p>
+      <p className="text-sm text-slate-400">Click the button to add your first node</p>
+      <button
+        onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
+        onClick={() => {
+          console.log("🟢 Empty canvas: adding default Manual Trigger node");
+          addNode("manual");
+          setShowPalette(false);
+          setPaletteSourceNode(null);
+          setShowPaletteForNode(null);
+        }}
+        style={{
+          padding: "8px 16px",
+          background: "#ff0000",
+          color: "#fff",
+          border: "none",
+          borderRadius: "4px",
+          cursor: "pointer",
+          fontWeight: "bold",
+        }}
+      >
+        DEBUG: Add First Node
+      </button>
+    </div>
+  </div>
+)}
