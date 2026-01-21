@@ -10,6 +10,8 @@ import { manualTriggerNode } from "./core/manual.trigger";
 import { httpRequestNode } from "./core/http.action";
 import { logDebugNode } from "./core/log.action";
 import { generateTextAction, generateEmailAction } from "./ai";
+import { whatsappNodes } from "./whatsapp";
+import { instagramNodes } from "./instagram";
 
 // Central registry of all automation nodes.
 // This is the single source of truth for node definitions.
@@ -27,6 +29,8 @@ export const nodeRegistry: Record<string, AutomationNode> = {
    [logDebugNode.type]: logDebugNode,
    [generateTextAction.type]: generateTextAction,
   [generateEmailAction.type]: generateEmailAction,
+  ...whatsappNodes,
+  ...instagramNodes,
 };
 
 // Helper to safely retrieve a node definition with error handling.

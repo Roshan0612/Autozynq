@@ -1,18 +1,16 @@
 import { z } from "zod";
 import { AutomationNode, NodeContext } from "../base";
 
-// Config schema for Gmail Send Email action
+// Config schema for WhatsApp Send Message action
 const configSchema = z.object({
-  to: z.string().min(1, "to required"),
-  cc: z.string().optional(),
-  subject: z.string().min(1, "subject required"),
-  bodyHtml: z.string().min(1, "bodyHtml required"),
+  phoneNumber: z.string().min(1, "Phone number required"),
+  message: z.string().min(1, "Message required"),
 });
 
 // Output schema
 const outputSchema = z.object({
   messageId: z.string(),
-  status: z.literal("sent"),
+  delivered: z.boolean(),
 });
 
 type Config = z.infer<typeof configSchema>;
@@ -36,11 +34,11 @@ function getNestedValue(obj: any, path: string, fallback: any = ""): any {
   }
 }
 
-export const gmailSendEmailAction: AutomationNode = {
-  type: "gmail.action.sendEmail",
+export const whatsappSendMessageAction: AutomationNode = {
+  type: "whatsapp.action.sendMessage",
   category: "action",
-  displayName: "Gmail Send Email",
-  description: "Send an email via Gmail (outbound only)",
+  displayName: "WhatsApp Send Message",
+  description: "Send a message via WhatsApp (outbound only)",
   configSchema,
   outputSchema,
 
@@ -49,19 +47,17 @@ export const gmailSendEmailAction: AutomationNode = {
 
     // Resolve templated fields against prior output
     const prior = ctx.input || {};
-    const to = interpolate(cfg.to, prior);
-    const cc = cfg.cc ? interpolate(cfg.cc, prior) : undefined;
-    const subject = interpolate(cfg.subject, prior);
-    const bodyHtml = interpolate(cfg.bodyHtml, prior);
+    const phoneNumber = interpolate(cfg.phoneNumber, prior);
+    const message = interpolate(cfg.message, prior);
 
-    // Mock implementation: simulate successful email delivery
-    // In production, would integrate with Gmail API
-    const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    console.log(`[Gmail] Sent email to ${to}: ${subject}`);
+    // Mock implementation: simulate successful WhatsApp message delivery
+    // In production, would integrate with WhatsApp Business API
+    const messageId = `whatsapp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    console.log(`[WhatsApp] Sent message to ${phoneNumber}: ${message}`);
 
     return outputSchema.parse({
       messageId,
-      status: "sent",
+      delivered: true,
     });
   },
 };

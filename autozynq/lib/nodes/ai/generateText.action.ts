@@ -6,9 +6,15 @@ const configSchema = z.object({
   provider: z.enum(["openai", "gemini", "groq"]).default("groq"),
   model: z.string().default("llama-3.3-70b-versatile"),
   systemPrompt: z.string().optional(),
-  prompt: z.string().min(1, "Prompt is required"),
+  userPrompt: z.string().min(1, "User prompt is required"),
   temperature: z.number().min(0).max(2).default(0.7),
   maxTokens: z.number().min(1).max(8000).default(500),
+  outputFormat: z
+    .object({
+      type: z.literal("json"),
+      schema: z.record(z.string()).optional(),
+    })
+    .optional(),
 });
 
 // Input schema - accepts any previous node output
@@ -16,9 +22,10 @@ const inputSchema = z.object({
   input: z.any().optional(),
 });
 
-// Output schema - structured AI response
+// Output schema - supports both text and JSON output formats
 const outputSchema = z.object({
-  text: z.string(),
+  text: z.string().optional(),
+  json: z.record(z.any()).optional(),
   model: z.string(),
   usage: z
     .object({
@@ -35,14 +42,15 @@ type Output = z.infer<typeof outputSchema>;
 /**
  * AI Generate Text Action Node
  * 
- * Calls AI API (OpenAI or Gemini) to generate text based on a prompt.
+ * Calls AI API (OpenAI, Gemini, or Groq) to generate text or JSON based on a prompt.
+ * Supports free-form text generation and structured JSON extraction.
  * Integrates with workflow execution engine and supports dynamic input.
  */
 export const generateTextAction: AutomationNode = {
   type: "ai.action.generateText",
   category: "action",
   displayName: "AI Generate Text",
-  description: "Generate text using an AI model (OpenAI, Gemini, or Groq)",
+  description: "Generate text or extract JSON using an AI model (OpenAI, Gemini, or Groq)",
   configSchema,
   outputSchema,
 
@@ -50,23 +58,31 @@ export const generateTextAction: AutomationNode = {
     // Validate config
     const config = configSchema.parse(ctx.config) as Config;
 
-    // Build the full prompt by merging config prompt with optional input
-    let fullPrompt = config.prompt;
+    // Interpolate userPrompt with previous output
+    let fullPrompt = config.userPrompt;
     if (ctx.input) {
       const inputString =
         typeof ctx.input === "string"
           ? ctx.input
           : JSON.stringify(ctx.input, null, 2);
-      fullPrompt = `${config.prompt}\n\nInput data:\n${inputString}`;
+      fullPrompt = `${config.userPrompt}\n\nInput data:\n${inputString}`;
+    }
+
+    // If JSON output is requested, add instruction to response
+    if (config.outputFormat?.type === "json") {
+      fullPrompt += "\n\nRespond with ONLY valid JSON, no markdown or extra text.";
+      if (config.outputFormat.schema) {
+        fullPrompt += `\nExpected schema: ${JSON.stringify(config.outputFormat.schema)}`;
+      }
     }
 
     // Route to appropriate provider
     if (config.provider === "gemini") {
-      return await runGemini(config, fullPrompt);
+      return await runGemini(config, fullPrompt, config.outputFormat?.type === "json");
     } else if (config.provider === "groq") {
-      return await runGroq(config, fullPrompt);
+      return await runGroq(config, fullPrompt, config.outputFormat?.type === "json");
     } else {
-      return await runOpenAI(config, fullPrompt);
+      return await runOpenAI(config, fullPrompt, config.outputFormat?.type === "json");
     }
   },
 };
@@ -74,7 +90,7 @@ export const generateTextAction: AutomationNode = {
 /**
  * Run with Google Gemini API
  */
-async function runGemini(config: Config, fullPrompt: string): Promise<Output> {
+async function runGemini(config: Config, fullPrompt: string, expectJson: boolean = false): Promise<Output> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error(
@@ -155,12 +171,28 @@ async function runGemini(config: Config, fullPrompt: string): Promise<Output> {
   console.log(`[AI Node] Generated ${generatedText.length} chars`);
   console.log(`[AI Node] Usage:`, usage);
 
+  // Parse JSON if requested
+  let jsonOutput: Record<string, any> | undefined;
+  if (expectJson) {
+    try {
+      jsonOutput = JSON.parse(generatedText);
+    } catch (e) {
+      throw new Error(`Failed to parse AI response as JSON: ${generatedText}`);
+    }
+  }
+
   // Return structured output
-  const output: Output = {
-    text: generatedText.trim(),
-    model: config.model,
-    usage,
-  };
+  const output: Output = expectJson
+    ? {
+        json: jsonOutput,
+        model: config.model,
+        usage,
+      }
+    : {
+        text: generatedText.trim(),
+        model: config.model,
+        usage,
+      };
 
   return outputSchema.parse(output);
 }
@@ -168,7 +200,7 @@ async function runGemini(config: Config, fullPrompt: string): Promise<Output> {
 /**
  * Run with Groq API
  */
-async function runGroq(config: Config, fullPrompt: string): Promise<Output> {
+async function runGroq(config: Config, fullPrompt: string, expectJson: boolean = false): Promise<Output> {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
     throw new Error(
@@ -244,12 +276,28 @@ async function runGroq(config: Config, fullPrompt: string): Promise<Output> {
   console.log(`[AI Node] Generated ${generatedText.length} chars`);
   console.log(`[AI Node] Usage:`, usage);
 
+  // Parse JSON if requested
+  let jsonOutput: Record<string, any> | undefined;
+  if (expectJson) {
+    try {
+      jsonOutput = JSON.parse(generatedText);
+    } catch (e) {
+      throw new Error(`Failed to parse AI response as JSON: ${generatedText}`);
+    }
+  }
+
   // Return structured output
-  const output: Output = {
-    text: generatedText.trim(),
-    model: config.model,
-    usage,
-  };
+  const output: Output = expectJson
+    ? {
+        json: jsonOutput,
+        model: config.model,
+        usage,
+      }
+    : {
+        text: generatedText.trim(),
+        model: config.model,
+        usage,
+      };
 
   return outputSchema.parse(output);
 }
@@ -257,7 +305,7 @@ async function runGroq(config: Config, fullPrompt: string): Promise<Output> {
 /**
  * Run with OpenAI API
  */
-async function runOpenAI(config: Config, fullPrompt: string): Promise<Output> {
+async function runOpenAI(config: Config, fullPrompt: string, expectJson: boolean = false): Promise<Output> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error(
@@ -332,12 +380,28 @@ async function runOpenAI(config: Config, fullPrompt: string): Promise<Output> {
   console.log(`[AI Node] Generated ${generatedText.length} chars`);
   console.log(`[AI Node] Usage:`, usage);
 
+  // Parse JSON if requested
+  let jsonOutput: Record<string, any> | undefined;
+  if (expectJson) {
+    try {
+      jsonOutput = JSON.parse(generatedText);
+    } catch (e) {
+      throw new Error(`Failed to parse AI response as JSON: ${generatedText}`);
+    }
+  }
+
   // Return structured output
-  const output: Output = {
-    text: generatedText.trim(),
-    model: config.model,
-    usage,
-  };
+  const output: Output = expectJson
+    ? {
+        json: jsonOutput,
+        model: config.model,
+        usage,
+      }
+    : {
+        text: generatedText.trim(),
+        model: config.model,
+        usage,
+      };
 
   return outputSchema.parse(output);
 }
