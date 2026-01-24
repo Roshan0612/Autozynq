@@ -40,9 +40,10 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  accounts  Account[]
-  sessions  Session[]
-  workflows Workflow[]
+  accounts    Account[]
+  sessions    Session[]
+  workflows   Workflow[]
+  connections Connection[]
 }
 
 model Account {
@@ -162,4 +163,21 @@ model TriggerSubscription {
   workflow Workflow @relation("TriggerSubscriptions", fields: [workflowId], references: [id], onDelete: Cascade)
 
   @@index([workflowId])
+}
+
+model Connection {
+  id           String    @id @default(cuid())
+  userId       String
+  provider     String    // "google", "gmail", "instagram", etc.
+  accessToken  String    @db.Text
+  refreshToken String?   @db.Text
+  expiresAt    DateTime?
+  metadata     Json?     // Store extra provider-specific data
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([provider])
 }

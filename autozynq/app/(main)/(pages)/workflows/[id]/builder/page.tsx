@@ -1,5 +1,6 @@
 import { getServerSession } from "next-auth";
 import { notFound, redirect } from "next/navigation";
+import { WorkflowStatus } from "@prisma/client";
 import { authOptions } from "@/lib/auth/options";
 import { prisma } from "@/lib/prisma";
 import type { WorkflowDefinition } from "@/lib/workflow/schema";
@@ -37,6 +38,7 @@ export default async function BuilderPage({ params }: BuilderPageProps) {
       workflowId={workflow.id}
       workflowName={workflow.name}
       initialDefinition={definition}
+      initialStatus={workflow.status as WorkflowStatus}
     />
   );
 }

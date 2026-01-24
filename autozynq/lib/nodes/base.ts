@@ -1,5 +1,13 @@
 import { z, ZodSchema } from "zod";
 
+// Field descriptor for dynamic output introspection
+export interface OutputField {
+  key: string; // Field key in output object (e.g., "email", "name")
+  label: string; // Human-readable label for UI
+  type: "string" | "number" | "boolean" | "object" | "array"; // Data type
+  description?: string; // Optional description
+}
+
 // Context passed to every node during execution.
 // Provides access to input data, node config, auth credentials, and execution metadata.
 export interface NodeContext {
@@ -10,6 +18,8 @@ export interface NodeContext {
   workflowId: string; // Workflow ID for reference
   userId?: string; // User ID who owns the execution
   stepIndex: number; // Current step number in execution
+  // NEW: Access to previous node outputs for template resolution
+  previousOutputs?: Record<string, unknown>; // { nodeId: output }
 }
 
 // Base interface that all automation nodes must implement.
@@ -21,7 +31,22 @@ export interface AutomationNode {
   description: string; // Short description of what the node does
   configSchema: ZodSchema; // Validates node.config in workflow definition
   outputSchema: ZodSchema; // Validates data emitted by node.run()
+  
+  // NEW: Dynamic output field introspection (used by UI for field picker)
+  outputFields: OutputField[]; // Static output fields (can be overridden dynamically)
+  
+  // NEW: Connection requirements
+  requiresConnection: boolean; // Does this node need an OAuth connection?
+  provider?: "google" | "gmail" | "instagram" | "slack"; // Provider for connection lookup
+  
   run(ctx: NodeContext): Promise<unknown>; // Async execution function
+  
+  // NEW: Optional method to fetch dynamic output fields at runtime
+  // Used when output schema depends on external data (e.g., Google Form fields)
+  getDynamicOutputFields?(
+    config: unknown,
+    userId: string
+  ): Promise<OutputField[]>;
 }
 
 // Helper type to infer config type from Zod schema

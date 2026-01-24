@@ -24,7 +24,9 @@ import { nanoid } from "nanoid";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConnectionPicker } from "@/components/ConnectionPicker";
 import { WorkflowDefinition } from "@/lib/workflow/schema";
+import { WorkflowStatus } from "@prisma/client";
 
 // Custom node component - professional dark theme
 function CustomNode({ data }: { data: any }) {
@@ -116,6 +118,7 @@ interface WorkflowBuilderClientProps {
   workflowId: string;
   workflowName: string;
   initialDefinition: WorkflowDefinition;
+  initialStatus: WorkflowStatus;
 }
 
 type NodeCategory = "trigger" | "action" | "logic";
@@ -190,7 +193,7 @@ const NODE_LIBRARY: NodeTemplate[] = [
     defaultConfig: {
       provider: "groq",
       model: "llama-3.3-70b-versatile",
-      prompt: "",
+      userPrompt: "",
       temperature: 0.7,
       maxTokens: 500,
     },
@@ -217,7 +220,7 @@ const NODE_LIBRARY: NodeTemplate[] = [
     label: "Google Forms – New Response",
     category: "trigger",
     nodeType: "google_forms.trigger.newResponse",
-    defaultConfig: { connectionId: "stub-conn", formId: "form_123", since: undefined },
+    defaultConfig: { formId: "", includeAttachments: false },
   },
   {
     key: "gf-get-form",
@@ -246,10 +249,10 @@ const NODE_LIBRARY: NodeTemplate[] = [
     category: "action",
     nodeType: "gmail.action.sendEmail",
     defaultConfig: {
-      connectionId: "stub-conn",
       to: "{{answers.Email}}",
+      cc: "",
       subject: "{{subject}}",
-      body: "{{body}}",
+      bodyHtml: "{{body}}",
     },
   },
 ];
@@ -327,12 +330,55 @@ function toReactFlowEdges(edges: BuilderEdge[]): FlowEdge[] {
 }
 
 function serializeDefinition(state: WorkflowState): WorkflowDefinition {
-  return {
-    nodes: state.nodes.map((node) => ({
+  const normalizeFormId = (input?: string) => {
+    if (!input) return "";
+    if (!input.startsWith("http")) return input.trim();
+    const match = input.match(/\/forms\/d\/e\/([^/]+)/);
+    if (match?.[1]) return match[1];
+    const url = new URL(input);
+    const pathParts = url.pathname.split("/").filter(Boolean);
+    return pathParts[pathParts.length - 1] || input.trim();
+  };
+
+  const normalizedNodes = state.nodes.map((node) => {
+    let config = { ...(node.config ?? {}) } as Record<string, any>;
+
+    if (node.nodeType === "google_forms.trigger.newResponse") {
+      config = {
+        connectionId: config.connectionId ?? "",
+        formId: normalizeFormId(config.formId),
+        includeAttachments: Boolean(config.includeAttachments),
+        conditions: config.conditions,
+      };
+    }
+
+    if (node.nodeType === "gmail.action.sendEmail") {
+      const bodyHtml = config.bodyHtml ?? config.body ?? "";
+      config = {
+        connectionId: config.connectionId ?? "",
+        to: config.to ?? "",
+        cc: config.cc ?? "",
+        bcc: config.bcc ?? "",
+        subject: config.subject ?? "",
+        bodyHtml,
+      };
+    }
+
+    if (node.nodeType === "ai.action.generateText") {
+      const userPrompt = config.userPrompt ?? config.prompt ?? "";
+      const { prompt, ...rest } = config;
+      config = { ...rest, userPrompt };
+    }
+
+    return {
       id: node.id,
       type: node.nodeType,
-      config: node.config ?? {},
-    })),
+      config,
+    };
+  });
+
+  return {
+    nodes: normalizedNodes,
     edges: state.edges.map((edge) => ({
       from: edge.from,
       to: edge.to,
@@ -373,12 +419,11 @@ function NodeConfigForm({
       return (
         <div className="space-y-3">
           <div className="space-y-1">
-            <p className="font-mono text-xs text-muted-foreground">Connection ID</p>
-            <input
-              value={node.config.connectionId || ""}
-              onChange={(e) => onChange({ ...node.config, connectionId: e.target.value })}
-              placeholder="stub-conn"
-              className="w-full rounded border px-2 py-1 text-sm"
+            <p className="font-mono text-xs text-muted-foreground">Google Connection</p>
+            <ConnectionPicker
+              provider="google"
+              value={node.config.connectionId}
+              onChange={(id) => onChange({ ...node.config, connectionId: id })}
             />
           </div>
           <div className="space-y-1">
@@ -386,19 +431,18 @@ function NodeConfigForm({
             <input
               value={node.config.formId || ""}
               onChange={(e) => onChange({ ...node.config, formId: e.target.value })}
-              placeholder="form_123"
+              placeholder="Paste form URL or ID"
               className="w-full rounded border px-2 py-1 text-sm"
             />
           </div>
-          <div className="space-y-1">
-            <p className="font-mono text-xs text-muted-foreground">Since (ISO, optional)</p>
+          <label className="flex items-center gap-2 text-sm text-muted-foreground">
             <input
-              value={node.config.since || ""}
-              onChange={(e) => onChange({ ...node.config, since: e.target.value || undefined })}
-              placeholder="2024-01-01T00:00:00.000Z"
-              className="w-full rounded border px-2 py-1 text-sm"
+              type="checkbox"
+              checked={Boolean(node.config.includeAttachments)}
+              onChange={(e) => onChange({ ...node.config, includeAttachments: e.target.checked })}
             />
-          </div>
+            Include attachments
+          </label>
         </div>
       );
     case "ai.action.generateEmail":
@@ -632,12 +676,11 @@ function NodeConfigForm({
       return (
         <div className="space-y-3">
           <div className="space-y-1">
-            <p className="font-mono text-xs text-muted-foreground">Connection ID</p>
-            <input
-              value={node.config.connectionId || ""}
-              onChange={(e) => onChange({ ...node.config, connectionId: e.target.value })}
-              placeholder="stub-conn"
-              className="w-full rounded border px-2 py-1 text-sm"
+            <p className="font-mono text-xs text-muted-foreground">Gmail Connection</p>
+            <ConnectionPicker
+              provider="google"
+              value={node.config.connectionId}
+              onChange={(id) => onChange({ ...node.config, connectionId: id })}
             />
           </div>
           <div className="space-y-1">
@@ -645,7 +688,26 @@ function NodeConfigForm({
             <input
               value={node.config.to || ""}
               onChange={(e) => onChange({ ...node.config, to: e.target.value })}
-              placeholder="{{answers.Email}} or someone@example.com"
+              placeholder="{{steps.trigger1.email}} or someone@example.com"
+              className="w-full rounded border px-2 py-1 text-sm"
+            />
+            <p className="text-xs text-muted-foreground">Use {`{{steps.nodeId.field}}`} to reference previous outputs</p>
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">CC (optional)</p>
+            <input
+              value={node.config.cc || ""}
+              onChange={(e) => onChange({ ...node.config, cc: e.target.value })}
+              placeholder="{{steps.trigger1.cc}} or team@example.com"
+              className="w-full rounded border px-2 py-1 text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">BCC (optional)</p>
+            <input
+              value={node.config.bcc || ""}
+              onChange={(e) => onChange({ ...node.config, bcc: e.target.value })}
+              placeholder="archive@example.com"
               className="w-full rounded border px-2 py-1 text-sm"
             />
           </div>
@@ -654,20 +716,20 @@ function NodeConfigForm({
             <input
               value={node.config.subject || ""}
               onChange={(e) => onChange({ ...node.config, subject: e.target.value })}
-              placeholder="{{subject}}"
+              placeholder="Thank you {{steps.trigger1.name}}!"
               className="w-full rounded border px-2 py-1 text-sm"
             />
           </div>
           <div className="space-y-1">
-            <p className="font-mono text-xs text-muted-foreground">Body</p>
+            <p className="font-mono text-xs text-muted-foreground">Body HTML</p>
             <textarea
-              value={node.config.body || ""}
-              onChange={(e) => onChange({ ...node.config, body: e.target.value })}
-              placeholder="{{body}}"
+              value={node.config.bodyHtml || ""}
+              onChange={(e) => onChange({ ...node.config, bodyHtml: e.target.value })}
+              placeholder="<p>Hi {{steps.trigger1.name}},</p><p>{{steps.ai1.body}}</p>"
               className="w-full rounded border px-2 py-2 text-sm font-mono"
               rows={6}
             />
-            <p className="text-xs text-muted-foreground">Supports {"{{path}}"} from previous output (e.g., {"{{answers.Email}}"}, {"{{subject}}"}, {"{{body}}"}).</p>
+            <p className="text-xs text-muted-foreground">Supports {`{{steps.nodeId.field}}`} to insert previous outputs</p>
           </div>
         </div>
       );
@@ -739,8 +801,8 @@ function NodeConfigForm({
           <div className="space-y-1">
             <p className="font-mono text-xs text-muted-foreground">Prompt *</p>
             <textarea
-              value={node.config.prompt || ""}
-              onChange={(e) => onChange({ ...node.config, prompt: e.target.value })}
+              value={node.config.userPrompt || ""}
+              onChange={(e) => onChange({ ...node.config, userPrompt: e.target.value })}
               placeholder="Generate a creative blog post title about..."
               className="w-full rounded border px-2 py-2 text-sm font-mono"
               rows={5}
@@ -823,10 +885,12 @@ function NodeConfigForm({
 function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
   const [state, setState] = useState<WorkflowState>(() => hydrateState(props.initialDefinition));
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [status, setStatus] = useState<WorkflowStatus>(props.initialStatus);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [executing, setExecuting] = useState(false);
   const [executeMessage, setExecuteMessage] = useState<string | null>(null);
+  const [activating, setActivating] = useState(false);
   const [flowInstance, setFlowInstance] = useState<ReactFlowInstance | null>(null);
   const [showPalette, setShowPalette] = useState(false);
   const [paletteSourceNode, setPaletteSourceNode] = useState<string | null>(null);
@@ -968,8 +1032,10 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
       });
       const json = await res.json();
       if (!res.ok) {
-        setSaveMessage(json?.error || "Failed to save workflow");
+        setSaveMessage(json?.details || json?.error || "Failed to save workflow");
       } else {
+        const nextStatus = (json?.workflow?.status as WorkflowStatus) || status;
+        setStatus(nextStatus);
         setSaveMessage("Saved successfully");
       }
     } catch (error) {
@@ -977,7 +1043,28 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
     } finally {
       setSaving(false);
     }
-  }, [props.workflowId, state]);
+  }, [props.workflowId, state, status]);
+
+  const handleToggleActivation = useCallback(async () => {
+    setActivating(true);
+    setSaveMessage(null);
+    try {
+      const method = status === "ACTIVE" ? "DELETE" : "POST";
+      const res = await fetch(`/api/workflows/${props.workflowId}/activate`, { method });
+      const json = await res.json();
+      if (!res.ok) {
+        setSaveMessage(json?.message || json?.error || "Failed to update status");
+        return;
+      }
+      const nextStatus = (json?.status as WorkflowStatus) || (status === "ACTIVE" ? "PAUSED" : "ACTIVE");
+      setStatus(nextStatus);
+      setSaveMessage(nextStatus === "ACTIVE" ? "Workflow activated" : "Workflow deactivated");
+    } catch (error) {
+      setSaveMessage(error instanceof Error ? error.message : "Failed to update status");
+    } finally {
+      setActivating(false);
+    }
+  }, [props.workflowId, status]);
 
   const handleExecute = useCallback(async () => {
     setExecuting(true);
@@ -1012,6 +1099,15 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
             <h1 className="text-2xl font-mono font-bold">{props.workflowName}</h1>
           </div>
           <div className="flex items-center gap-2">
+            <span
+              className={`text-xs font-mono px-2 py-1 rounded border ${
+                status === "ACTIVE"
+                  ? "border-green-200 bg-green-50 text-green-800"
+                  : "border-amber-200 bg-amber-50 text-amber-800"
+              }`}
+            >
+              Status: {status}
+            </span>
             <Button 
               variant="outline" 
               size="sm"
@@ -1019,6 +1115,13 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
               className="mr-2"
             >
               {darkMode ? "🌙 Dark" : "☀️ Light"}
+            </Button>
+            <Button variant={status === "ACTIVE" ? "outline" : "secondary"} onClick={handleToggleActivation} disabled={activating}>
+              {activating
+                ? "Updating..."
+                : status === "ACTIVE"
+                ? "Deactivate"
+                : "Activate"}
             </Button>
             <Button variant="secondary" onClick={handleExecute} disabled={executing}>
               {executing ? "Executing..." : "Execute Workflow"}

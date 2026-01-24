@@ -2,6 +2,7 @@ import { prisma } from "../prisma";
 import { getNode } from "../nodes/registry";
 import { WorkflowDefinition, WorkflowNode, WorkflowEdge } from "../workflow/schema";
 import { NodeContext } from "../nodes/base";
+import { resolveConfigTemplates } from "./templateResolver";
 import {
   acquireExecutionLock,
   releaseExecutionLock,
@@ -128,6 +129,7 @@ export async function runWorkflow(params: RunWorkflowParams): Promise<string> {
   const steps: ExecutionStep[] = [];
   const executedNodeIds = new Set<string>(); // Track which nodes have executed
   const nodeOutputs = new Map<string, unknown>(); // Store outputs for each node
+  const previousOutputsMap = new Map<string, Record<string, unknown>>(); // For tracking previousOutputs at each step
 
   // ============================================================================
   // STEP 3: Attempt to acquire execution lock
@@ -315,7 +317,13 @@ export async function runWorkflow(params: RunWorkflowParams): Promise<string> {
           workflowId,
           userId: userId || workflow.userId,
           stepIndex: steps.length - 1,
+          // NEW: Pass previousOutputs map for template resolution
+          previousOutputs: Object.fromEntries(nodeOutputs),
         };
+
+        // NEW: Resolve config templates using previousOutputs
+        const resolvedConfig = resolveConfigTemplates(ctx.config, ctx.previousOutputs);
+        ctx.config = resolvedConfig;
 
         // Execute node
         const output = await nodeDef.run(ctx);

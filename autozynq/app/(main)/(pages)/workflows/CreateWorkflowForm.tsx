@@ -70,6 +70,7 @@ export function CreateWorkflowForm() {
             <input
               className="rounded border px-3 py-2 text-sm"
               placeholder="My First Workflow"
+              suppressHydrationWarning
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
