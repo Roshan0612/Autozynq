@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 import {
   getTriggerSubscriptionByPath,
   updateSubscriptionAfterExecution,
@@ -17,11 +18,12 @@ import { WorkflowLockedError, LockAcquisitionFailedError } from "@/lib/execution
  * Flow:
  * 1. Extract trigger webhook path from URL
  * 2. Parse request body as JSON
- * 3. Look up trigger subscription
- * 4. Validate workflow is ACTIVE
- * 5. Call runWorkflow() to start execution
- * 6. Update subscription metadata
- * 7. Return 200 with execution ID
+ * 3. Verify webhook signature (for Google Forms)
+ * 4. Look up trigger subscription
+ * 5. Validate workflow is ACTIVE
+ * 6. Call runWorkflow() to start execution
+ * 7. Update subscription metadata
+ * 8. Return 200 with execution ID
  * 
  * Design:
  * - No authentication required (webhooks are public)
@@ -29,6 +31,23 @@ import { WorkflowLockedError, LockAcquisitionFailedError } from "@/lib/execution
  * - Defensive error handling (never crashes)
  * - All errors logged but gracefully returned
  */
+
+/**
+ * Verify webhook signature from Google Forms
+ * Uses HMAC SHA256 with shared secret
+ */
+function verifySignature(payload: string, signature: string): boolean {
+  const secret = process.env.GOOGLE_FORMS_WEBHOOK_SECRET || "secret";
+  const expectedSignature = crypto
+    .createHmac("sha256", secret)
+    .update(payload)
+    .digest("hex");
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expectedSignature)
+  );
+}
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ triggerId: string }> }
@@ -54,11 +73,14 @@ export async function POST(
     // ============================================================================
 
     let webhookPayload: unknown;
+    let rawPayload: string;
     try {
-      webhookPayload = await req.json();
+      rawPayload = await req.text();
+      webhookPayload = JSON.parse(rawPayload);
     } catch {
       // Allow empty body
       webhookPayload = {};
+      rawPayload = "{}";
     }
 
     // Validate payload is an object
@@ -72,13 +94,34 @@ export async function POST(
       );
     }
 
+    // ============================================================================
+    // STEP 3: Verify webhook signature (for Google Forms)
+    // ============================================================================
+
+    const signature = req.headers.get("X-Signature");
+    if (signature) {
+      try {
+        if (!verifySignature(rawPayload, signature)) {
+          console.warn(`[Webhook] Signature verification failed for trigger: ${triggerId}`);
+          return NextResponse.json(
+            { error: "Signature verification failed" },
+            { status: 401 }
+          );
+        }
+        console.log(`[Webhook] Signature verified for trigger: ${triggerId}`);
+      } catch (error) {
+        console.warn(`[Webhook] Signature verification error: ${error}`);
+        // Continue without signature verification if something fails
+      }
+    }
+
     console.log(`[Webhook] Received event for trigger: ${triggerId}`);
     console.log(
       `[Webhook] Payload: ${JSON.stringify(webhookPayload).substring(0, 200)}...`
     );
 
     // ============================================================================
-    // STEP 3: Look up trigger subscription by webhook path
+    // STEP 4: Look up trigger subscription by webhook path
     // ============================================================================
 
     const subscription = await getTriggerSubscriptionByPath(triggerId);

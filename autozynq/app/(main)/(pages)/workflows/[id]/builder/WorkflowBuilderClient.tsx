@@ -25,6 +25,7 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConnectionPicker } from "@/components/ConnectionPicker";
+import { GoogleFormPicker } from "@/components/GoogleFormPicker";
 import { WorkflowDefinition } from "@/lib/workflow/schema";
 import { WorkflowStatus } from "@prisma/client";
 
@@ -427,14 +428,16 @@ function NodeConfigForm({
             />
           </div>
           <div className="space-y-1">
-            <p className="font-mono text-xs text-muted-foreground">Form ID</p>
-            <input
-              value={node.config.formId || ""}
-              onChange={(e) => onChange({ ...node.config, formId: e.target.value })}
-              placeholder="Paste form URL or ID"
-              className="w-full rounded border px-2 py-1 text-sm"
+            <p className="font-mono text-xs text-muted-foreground">Select Form</p>
+            <GoogleFormPicker
+              connectionId={node.config.connectionId}
+              value={node.config.formId}
+              onChange={(formId) => onChange({ ...node.config, formId })}
             />
           </div>
+          <p className="text-xs text-muted-foreground">
+            💡 Reference form answers in next nodes using: {`{{steps.${node.id}.answers.fieldName}}`}
+          </p>
           <label className="flex items-center gap-2 text-sm text-muted-foreground">
             <input
               type="checkbox"

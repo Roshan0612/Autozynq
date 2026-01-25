@@ -1,213 +1,165 @@
 import { z } from "zod";
 import type { AutomationNode, NodeContext, OutputField } from "../base";
-import { getConnection } from "../../connections/service";
+import { prisma } from "@/lib/prisma";
 
 // Config schema for Google Forms New Response Trigger
 const configSchema = z.object({
   connectionId: z.string().min(1, "Google connection required"),
   formId: z.string().min(1, "Form ID required"),
-  includeAttachments: z.boolean().default(false),
-  conditions: z
-    .array(
-      z.object({
-        field: z.string(),
-        operator: z.enum(["equals", "contains", "exists"]),
-        value: z.string().optional(),
-      })
-    )
-    .optional(),
-});
-
-// Output schema: normalized response data from webhook payload
-const outputSchema = z.object({
-  responseId: z.string(),
-  submittedAt: z.string(),
-  formTitle: z.string(),
-  // Dynamic fields will be added based on form structure
+  formTitle: z.string().optional(),
 });
 
 type Config = z.infer<typeof configSchema>;
 
-/**
- * Fetch form structure from Google Forms API
- * Returns the form metadata including question titles
- */
-async function getFormStructure(
-  formId: string,
-  accessToken: string
-): Promise<{ title: string; questions: Array<{ questionId: string; title: string; type: string }> }> {
-  try {
-    const { google } = await import("googleapis");
-    const oauth2Client = new google.auth.OAuth2();
-    oauth2Client.setCredentials({ access_token: accessToken });
-
-    const forms = google.forms({ version: "v1", auth: oauth2Client });
-    const response = await forms.forms.get({ formId });
-
-    const formTitle = response.data.info?.title || "Untitled Form";
-    const items = response.data.items || [];
-
-    const questions = items
-      .filter((item) => item.questionItem)
-      .map((item) => {
-        const questionItem = item.questionItem!;
-        const question = questionItem.question!;
-        return {
-          questionId: question.questionId || "",
-          title: item.title || "Untitled Question",
-          type:
-            question.choiceQuestion ? "choice" :
-            question.textQuestion ? "text" :
-            question.scaleQuestion ? "scale" :
-            question.dateQuestion ? "date" :
-            question.timeQuestion ? "time" :
-            question.fileUploadQuestion ? "file" :
-            "unknown",
-        };
-      });
-
-    return { title: formTitle, questions };
-  } catch (error: any) {
-    console.error("[GoogleForms] Failed to fetch form structure:", error.message);
-    // Return minimal structure if API call fails
-    return {
-      title: "Unknown Form",
-      questions: [],
-    };
-  }
-}
+// Output schema used by the execution engine for validation
+const outputSchema = z.object({
+  eventId: z.string().optional(),
+  formId: z.string(),
+  responseId: z.string(),
+  submittedAt: z.string(),
+  respondentEmail: z.string().nullable().optional(),
+  // answers: map of question title -> value (string or other types)
+  answers: z.record(z.string(), z.any()),
+});
 
 /**
- * Google Forms New Response Trigger (REALISTIC)
+ * Google Forms New Response Trigger
  * 
+ * Features:
  * - Requires Google OAuth connection
  * - Fetches actual form structure from Google Forms API
- * - Generates dynamic output fields based on form questions
- * - Triggered via existing webhook infrastructure
- * - Normalizes webhook payload to match form structure
+ * - Generates dynamic output fields: answers.fieldName
+ * - Triggered via webhook (Apps Script sends submissions)
+ * - Webhook payload: { eventId, formId, responseId, answers: {...}, submittedAt, respondentEmail }
  */
 export const googleFormsNewResponseTrigger: AutomationNode = {
   type: "google_forms.trigger.newResponse",
   category: "trigger",
   displayName: "Google Forms – New Response",
-  description: "Trigger on new Google Form responses (requires Google connection)",
+  description: "Trigger on new Google Form responses",
   configSchema,
   outputSchema,
 
-  // Connection requirements
   requiresConnection: true,
   provider: "google",
 
-  // Static output fields (always present)
+  // Static output fields
   outputFields: [
+    {
+      key: "eventId",
+      label: "Event ID",
+      type: "string",
+      description: "Unique identifier for this webhook event (idempotency key)",
+    },
+    {
+      key: "formId",
+      label: "Form ID",
+      type: "string",
+      description: "Google Form ID",
+    },
     {
       key: "responseId",
       label: "Response ID",
       type: "string",
-      description: "Unique identifier for this form response",
+      description: "Unique form response ID from Google Forms",
     },
     {
       key: "submittedAt",
       label: "Submitted At",
       type: "string",
-      description: "ISO timestamp when the form was submitted",
+      description: "ISO 8601 timestamp of submission",
     },
     {
-      key: "formTitle",
-      label: "Form Title",
+      key: "respondentEmail",
+      label: "Respondent Email",
       type: "string",
-      description: "Title of the Google Form",
+      description: "Email of form respondent (if available)",
     },
   ],
 
-  // Dynamic output fields (fetched from Google Forms API)
+  /**
+   * Get dynamic output fields by fetching form schema from Google
+   */
   async getDynamicOutputFields(config: unknown, userId: string): Promise<OutputField[]> {
     try {
       const cfg = configSchema.parse(config);
 
-      // Get Google connection
-      const connection = await getConnection(cfg.connectionId);
+      // Get connection
+      const connection = await prisma.connection.findUnique({
+        where: { id: cfg.connectionId },
+      });
+
       if (!connection || connection.userId !== userId) {
-        console.warn("[GoogleForms] Connection not found or unauthorized");
-        return [];
+        throw new Error("Connection not found or unauthorized");
       }
 
-      if (!connection.accessToken) {
-        console.warn("[GoogleForms] Connection missing access token");
-        return [];
-      }
+      // Fetch form schema from Google Forms API
+      const { getFormSchema } = await import("./service");
+      const schema = await getFormSchema(cfg.connectionId, cfg.formId);
 
-      // Fetch form structure
-      const formStructure = await getFormStructure(cfg.formId, connection.accessToken);
-
-      // Generate OutputFields from form questions
-      return formStructure.questions.map((q) => ({
-        key: q.questionId || q.title.toLowerCase().replace(/\s+/g, "_"),
+      // Format schema as output fields (answers.fieldName, etc.)
+      const dynamicFields = schema.questions.map((q) => ({
+        key: `answers.${q.title}`,
         label: q.title,
-        type: q.type === "scale" ? "number" : "string",
+        type: "string" as const,
         description: `Answer to: ${q.title}`,
       }));
-    } catch (error: any) {
-      console.error("[GoogleForms] Failed to get dynamic fields:", error.message);
+
+      return dynamicFields;
+    } catch (error) {
+      console.error("[GoogleForms] Error getting dynamic fields:", error);
       return [];
     }
   },
 
+  /**
+   * Process webhook payload from Google Apps Script
+   * 
+   * Payload format:
+   * {
+   *   eventId: string,
+   *   formId: string,
+   *   responseId: string,
+   *   answers: { "Question Title": "answer", ... },
+   *   submittedAt: string (ISO 8601),
+   *   respondentEmail?: string
+   * }
+   */
   async run(ctx: NodeContext) {
-    const cfg = configSchema.parse(ctx.config) as Config;
+    // Input is the webhook payload
+    const payload = ctx.input || {};
+    // Parse config defensively; config may be absent during manual Execute
+    const cfgResult = configSchema.safeParse(ctx.config);
+    const cfg: Partial<Config> = cfgResult.success ? cfgResult.data : {};
 
-    // Get connection for API access
-    const connection = await getConnection(cfg.connectionId);
-    if (!connection || !connection.accessToken) {
-      throw new Error("Google connection not found or missing access token");
+    // If manually testing (no input), return test data
+    if (!payload.responseId || !payload.answers) {
+      console.warn("[Google Forms Trigger] No input data - using test payload for manual execution");
+      return {
+        eventId: "test-event-id",
+        formId: payload.formId || (cfg.formId ?? "test-form-id"),
+        responseId: "test-response-id",
+        submittedAt: new Date().toISOString(),
+        respondentEmail: "test@example.com",
+        // Test answers - replace with your actual form fields
+        answers: {
+          Email: "test@example.com",
+          Name: "Test User",
+          Message: "This is a test form submission",
+          Phone: "123-456-7890",
+        },
+      };
     }
 
-    // Input is the raw webhook payload
-    const payload = ctx.input as any || {};
-
-    // Extract response data from payload
-    const responseId = payload.responseId || `resp_${Date.now()}`;
-    const submittedAt = payload.timestamp || new Date().toISOString();
-    const answers = payload.answers || {};
-
-    // Fetch form structure to get form title and normalize answers
-    const formStructure = await getFormStructure(cfg.formId, connection.accessToken);
-
-    // Build output object with static + dynamic fields
-    const output: Record<string, any> = {
-      responseId,
-      submittedAt,
-      formTitle: formStructure.title,
+    // Return normalized output matching template syntax: {{steps.trigger1.answers.fieldName}}
+    return {
+      eventId: payload.eventId,
+      formId: payload.formId || (cfg.formId ?? "unknown-form-id"),
+      responseId: payload.responseId,
+      submittedAt: payload.submittedAt || new Date().toISOString(),
+      respondentEmail: payload.respondentEmail || null,
+      // Flatten answers for template resolution
+      answers: payload.answers || {},
     };
-
-    // Map webhook answers to question IDs/titles
-    for (const question of formStructure.questions) {
-      const fieldKey = question.questionId || question.title.toLowerCase().replace(/\s+/g, "_");
-      output[fieldKey] = answers[fieldKey] || answers[question.title] || "";
-    }
-
-    // Apply optional conditions filter
-    if (cfg.conditions && cfg.conditions.length > 0) {
-      for (const condition of cfg.conditions) {
-        const fieldValue = output[condition.field];
-
-        if (condition.operator === "exists") {
-          if (!fieldValue) {
-            throw new Error(`Condition failed: field '${condition.field}' does not exist`);
-          }
-        } else if (condition.operator === "equals") {
-          if (fieldValue !== condition.value) {
-            throw new Error(`Condition failed: field '${condition.field}' does not equal '${condition.value}'`);
-          }
-        } else if (condition.operator === "contains") {
-          const fieldStr = String(fieldValue || "");
-          if (!fieldStr.includes(String(condition.value || ""))) {
-            throw new Error(`Condition failed: field '${condition.field}' does not contain '${condition.value}'`);
-          }
-        }
-      }
-    }
-
-    return output;
   },
 };

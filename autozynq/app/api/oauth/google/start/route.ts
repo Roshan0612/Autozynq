@@ -3,7 +3,15 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth/options";
 
 const GOOGLE_SCOPES = [
+  "openid",
+  "email",
+  "profile",
+  // Forms: responses + body (schema)
   "https://www.googleapis.com/auth/forms.responses.readonly",
+  "https://www.googleapis.com/auth/forms.body.readonly",
+  // Drive: to discover forms in user's Drive
+  "https://www.googleapis.com/auth/drive.readonly",
+  // Gmail: send emails
   "https://www.googleapis.com/auth/gmail.send",
 ];
 

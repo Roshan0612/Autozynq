@@ -370,10 +370,30 @@ export async function runWorkflow(params: RunWorkflowParams): Promise<string> {
           data: { steps: steps as any },
         });
 
-        // Rethrow to fail entire execution
-        throw new Error(
-          `Node ${node.id} (${node.type}) failed at step ${steps.length - 1}: ${step.error}`
-        );
+        // Fail execution gracefully without crashing
+        await prisma.execution.update({
+          where: { id: executionId },
+          data: {
+            status: "FAILED",
+            finishedAt: new Date(),
+            error: {
+              message:
+                error instanceof Error ? error.message : String(error),
+              nodeId: node.id,
+              stepIndex: steps.length - 1,
+              stack: error instanceof Error ? error.stack : undefined,
+            } as any,
+            steps: steps as any,
+          },
+        });
+
+        // Release lock on failure
+        if (lockResult) {
+          await releaseExecutionLock(workflowId, executionId);
+        }
+
+        // Stop further execution and return
+        return executionId;
       }
     }
 
@@ -429,8 +449,8 @@ export async function runWorkflow(params: RunWorkflowParams): Promise<string> {
       await releaseExecutionLock(workflowId, executionId);
     }
 
-    // Don't crash the server - error is stored in execution record
-    throw error;
+    // Don't crash the server - return executionId with FAILED status
+    return executionId;
   }
 }
 

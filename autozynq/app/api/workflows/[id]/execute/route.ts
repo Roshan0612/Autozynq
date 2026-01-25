@@ -87,13 +87,22 @@ export async function POST(
     });
   } catch (error) {
     console.error("Workflow execution error:", error);
-
+    // Fetch latest execution for status when runWorkflow handles errors gracefully
+    const { id: workflowId } = await params;
+    const latest = await prisma.execution.findFirst({
+      where: { workflowId },
+      orderBy: { startedAt: "desc" },
+      select: { id: true, status: true, startedAt: true, finishedAt: true, error: true },
+    });
     return NextResponse.json(
       {
-        error: "Workflow execution failed",
-        message: error instanceof Error ? error.message : String(error),
+        executionId: latest?.id,
+        status: latest?.status || "FAILED",
+        error: latest?.error || { message: "Workflow execution failed" },
+        startedAt: latest?.startedAt,
+        finishedAt: latest?.finishedAt,
       },
-      { status: 500 }
+      { status: 200 }
     );
   }
 }

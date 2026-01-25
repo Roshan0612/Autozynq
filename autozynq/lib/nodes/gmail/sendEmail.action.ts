@@ -1,7 +1,9 @@
 import { z } from "zod";
 import { AutomationNode, NodeContext, OutputField } from "../base";
-import { getConnection } from "../../connections/service";
+import { getConnection, updateConnection } from "../../connections/service";
 import { resolveTemplate } from "../../execution/templateResolver";
+import { getGoogleOAuthClient } from "@/lib/integrations/google/auth";
+import { OAuthExpiredError } from "@/lib/errors";
 
 // Config schema for Gmail Send Email action
 const configSchema = z.object({
@@ -29,7 +31,7 @@ type Config = z.infer<typeof configSchema>;
  * Send email via Gmail API
  */
 async function sendGmailMessage(
-  accessToken: string,
+  oauth2Client: any,
   to: string,
   subject: string,
   bodyHtml: string,
@@ -39,10 +41,6 @@ async function sendGmailMessage(
   try {
     // Dynamic import for server-side only
     const { google } = await import("googleapis");
-    
-    const oauth2Client = new google.auth.OAuth2();
-    oauth2Client.setCredentials({ access_token: accessToken });
-
     const gmail = google.gmail({ version: "v1", auth: oauth2Client });
 
     // Construct MIME message
@@ -77,6 +75,13 @@ async function sendGmailMessage(
     };
   } catch (error: any) {
     console.error("[Gmail] Failed to send email:", error.message);
+    // Map invalid credentials to typed error
+    if (
+      typeof error.message === "string" &&
+      error.message.toLowerCase().includes("invalid authentication")
+    ) {
+      throw new OAuthExpiredError("Google connection expired or invalid. Please reconnect Gmail.");
+    }
     throw new Error(`Gmail API error: ${error.message}`);
   }
 }
@@ -137,38 +142,83 @@ export const gmailSendEmailAction: AutomationNode = {
   ],
 
   async run(ctx: NodeContext) {
-    const cfg = configSchema.parse(ctx.config) as Config;
+    // Parse config defensively to support manual Execute with incomplete templates
+    const cfgResult = configSchema.safeParse(ctx.config);
+    let cfg: Config;
+    if (!cfgResult.success) {
+      console.warn("[Gmail] Config invalid - using test defaults for manual execution", cfgResult.error?.errors);
+      const raw = (ctx.config || {}) as any;
+      cfg = {
+        connectionId: raw.connectionId || "",
+        to: raw.to || "test@example.com",
+        subject: raw.subject || "Test Email",
+        bodyHtml: raw.bodyHtml || "<p>This is a test email generated during manual execution.</p>",
+        cc: raw.cc,
+        bcc: raw.bcc,
+        attachments: raw.attachments,
+      } as Config;
+    } else {
+      cfg = cfgResult.data as Config;
+    }
 
     // Get Gmail connection
     const connection = await getConnection(cfg.connectionId);
-    if (!connection || !connection.accessToken) {
-      throw new Error("Gmail connection not found or missing access token");
+    if (!connection || (!connection.accessToken && !connection.refreshToken)) {
+      throw new Error("Gmail connection not found or missing credentials");
     }
 
     // Get previous outputs for template resolution
     const previousOutputs = ctx.previousOutputs || {};
 
     // Resolve all template strings
-    const to = resolveTemplate(cfg.to, previousOutputs);
-    const subject = resolveTemplate(cfg.subject, previousOutputs);
-    const bodyHtml = resolveTemplate(cfg.bodyHtml, previousOutputs);
+    let to = resolveTemplate(cfg.to, previousOutputs);
+    let subject = resolveTemplate(cfg.subject, previousOutputs);
+    let bodyHtml = resolveTemplate(cfg.bodyHtml, previousOutputs);
     const cc = cfg.cc ? resolveTemplate(cfg.cc, previousOutputs) : undefined;
     const bcc = cfg.bcc ? resolveTemplate(cfg.bcc, previousOutputs) : undefined;
+
+    // Fallbacks for manual test when templates resolve to empty
+    if (!to) {
+      to = "test@example.com";
+      console.warn("[Gmail] 'to' resolved empty - using test@example.com for manual execution");
+    }
+    if (!subject) {
+      subject = "New Form Submission (Test)";
+    }
+    if (!bodyHtml) {
+      bodyHtml = "<h2>New Form Submission</h2><p>This is a test message sent during manual execution.</p>";
+    }
 
     // Validate resolved values
     if (!to || !to.includes("@")) {
       throw new Error(`Invalid recipient email after template resolution: "${to}"`);
     }
-
-    // Send email via Gmail API
-    const result = await sendGmailMessage(
-      connection.accessToken,
-      to,
-      subject,
-      bodyHtml,
-      cc,
-      bcc
-    );
+    // Refresh token and send email via Gmail API using unified auth client
+    const oauth2Client = await getGoogleOAuthClient(connection.id);
+    let result: { messageId: string; threadId: string };
+    try {
+      result = await sendGmailMessage(
+        oauth2Client,
+        to,
+        subject,
+        bodyHtml,
+        cc,
+        bcc
+      );
+    } catch (err) {
+      if (err instanceof OAuthExpiredError) {
+        // Mark connection invalid for UX guardrails
+        await updateConnection(connection.id, {
+          metadata: {
+            ...(connection.metadata || {}),
+            needsReauth: true,
+          },
+        });
+        // Re-throw typed error to be handled by engine without 500s
+        throw err;
+      }
+      throw err;
+    }
 
     console.log(`[Gmail] Successfully sent email to ${to}: ${subject}`);
 

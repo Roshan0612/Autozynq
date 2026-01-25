@@ -94,6 +94,14 @@ export async function GET(req: NextRequest) {
 
   try {
     const token = await fetchTokens(code, redirectUri);
+    console.log("Token response:", { 
+      access_token: token.access_token ? `${token.access_token.substring(0, 20)}...` : "MISSING",
+      refresh_token: token.refresh_token ? "present" : "missing",
+      expires_in: token.expires_in,
+      scope: token.scope,
+      token_type: token.token_type,
+    });
+
     const profile = await fetchProfile(token.access_token);
 
     const expiresAt = token.expires_in
@@ -118,6 +126,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error: any) {
+    console.error("OAuth callback error:", error);
     return NextResponse.json({ error: error?.message || "OAuth failed" }, { status: 500 });
   }
 
