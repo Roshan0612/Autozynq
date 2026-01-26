@@ -40,11 +40,11 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  accounts            Account[]
-  sessions            Session[]
-  workflows           Workflow[]
-  connections         Connection[]
-  googleFormsTriggers GoogleFormsTrigger[]
+  accounts             Account[]
+  sessions             Session[]
+  workflows            Workflow[]
+  connections          Connection[]
+  googleFormsTriggers  GoogleFormsTrigger[]
 }
 
 model Account {
@@ -96,6 +96,7 @@ model Workflow {
   triggers             WorkflowTrigger[]
   triggerSubscriptions TriggerSubscription[] @relation("TriggerSubscriptions")
   googleFormsTriggers  GoogleFormsTrigger[]
+  googleSheetsTriggers GoogleSheetsTrigger[]
 
   @@index([userId])
   @@index([status])
@@ -178,8 +179,10 @@ model Connection {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  googleFormsTriggers GoogleFormsTrigger[]
+  user                 User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  googleFormsTriggers  GoogleFormsTrigger[]
+  // removed direct relation to GoogleSheetsTrigger since it no longer references Connection/User
+  // leaving other relations intact
 
   @@index([userId])
   @@index([provider])
@@ -203,9 +206,27 @@ model GoogleFormsTrigger {
   workflow   Workflow   @relation(fields: [workflowId], references: [id], onDelete: Cascade)
   connection Connection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
 
+  @@unique([workflowId])
   @@index([userId])
   @@index([workflowId])
   @@index([formId])
   @@index([active])
-  @@unique([workflowId])
+}
+
+model GoogleSheetsTrigger {
+  id               String   @id @default(cuid())
+  workflowId       String
+  spreadsheetId    String
+  sheetName        String
+  headerRowIndex   Int      @default(1)
+  lastProcessedRow Int
+  startMode        String   // "from_now" | "all_existing_rows"
+  lastCheckedAt    DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([workflowId])
+  @@index([spreadsheetId, sheetName])
 }

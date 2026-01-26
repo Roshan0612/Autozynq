@@ -19,6 +19,7 @@ export interface RunWorkflowParams {
   userId?: string;
   triggerInput?: unknown;
   idempotencyKey?: string; // Optional idempotency key for duplicate prevention
+  executionMode?: "live" | "test"; // Distinguish live runs from explicit test trigger runs
 }
 
 export interface ExecutionStep {
@@ -69,6 +70,7 @@ export interface ExecutionError {
  */
 export async function runWorkflow(params: RunWorkflowParams): Promise<string> {
   const { workflowId, userId, triggerInput, idempotencyKey } = params;
+  const executionMode = params.executionMode ?? "live";
 
   // ============================================================================
   // STEP 1: Fetch and validate workflow
@@ -319,6 +321,7 @@ export async function runWorkflow(params: RunWorkflowParams): Promise<string> {
           stepIndex: steps.length - 1,
           // NEW: Pass previousOutputs map for template resolution
           previousOutputs: Object.fromEntries(nodeOutputs),
+          executionMode,
         };
 
         // NEW: Resolve config templates using previousOutputs

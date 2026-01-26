@@ -10,10 +10,24 @@ export async function GET() {
     return {
       type: node.type,
       category: node.category,
+      app: node.app || "Core",
       displayName: node.displayName,
       description: node.description,
+      icon: node.icon,
+      requiresConnection: node.requiresConnection,
+      provider: node.provider,
     };
   });
 
-  return NextResponse.json({ nodes });
+  return NextResponse.json({ 
+    nodes,
+    total: nodes.length,
+    groupedByApp: nodes.reduce((acc: Record<string, any[]>, node) => {
+      const app = node.app || "Core";
+      if (!acc[app]) acc[app] = [];
+      acc[app].push(node);
+      return acc;
+    }, {})
+  });
 }
+

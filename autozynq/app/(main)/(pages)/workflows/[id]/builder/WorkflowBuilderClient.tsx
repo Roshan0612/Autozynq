@@ -38,6 +38,7 @@ function CustomNode({ data }: { data: any }) {
   };
 
   const colors = categoryColors[data.category] || categoryColors.action;
+  const appIcon = data.appIcon as React.ReactNode | null | undefined;
 
   return (
     <div
@@ -45,11 +46,11 @@ function CustomNode({ data }: { data: any }) {
         position: "relative",
         background: colors.bg,
         border: `2px solid ${colors.border}`,
-        padding: "12px 16px",
+        padding: "12px 14px",
         color: colors.text,
         fontSize: "13px",
         fontWeight: 500,
-        minWidth: "140px",
+        minWidth: "180px",
         borderRadius: "6px",
         boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
         pointerEvents: "auto",
@@ -63,8 +64,37 @@ function CustomNode({ data }: { data: any }) {
         isConnectable
         style={{ background: colors.border, width: 10, height: 10, border: "2px solid #000" }}
       />
-      <div style={{ fontWeight: 600, marginBottom: "4px" }}>{data.label || "Node"}</div>
-      <div style={{ fontSize: "11px", opacity: 0.8 }}>{data.nodeType}</div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          width: "100%",
+          textAlign: "left",
+        }}
+      >
+        <div
+          style={{
+            width: 50,
+            minWidth: 50,
+            height: 50,
+            alignSelf: "center",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(0,0,0,0.25)",
+            borderRadius: 6,
+            padding: 0,
+            overflow: "hidden",
+          }}
+        >
+          {appIcon || null}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>{data.label || "Node"}</div>
+          <div style={{ fontSize: "11px", opacity: 0.8, wordBreak: "break-word" }}>{data.nodeType}</div>
+        </div>
+      </div>
       <Handle
         type="source"
         position={Position.Bottom}
@@ -244,6 +274,35 @@ const NODE_LIBRARY: NodeTemplate[] = [
     nodeType: "google_forms.action.listResponses",
     defaultConfig: { connectionId: "stub-conn", formId: "form_123", limit: 2, since: undefined },
   },
+  // Google Sheets
+  {
+    key: "gs-watch-rows",
+    label: "Google Sheets – Watch New Rows",
+    category: "trigger",
+    nodeType: "google_sheets.trigger.watchNewRows",
+    defaultConfig: { connectionId: "", spreadsheetId: "", sheetName: "", fromRow: 2, limit: undefined, startMode: "from_now" },
+  },
+  {
+    key: "gs-get-row",
+    label: "Google Sheets – Get Row",
+    category: "action",
+    nodeType: "google_sheets.action.getRow",
+    defaultConfig: { connectionId: "", spreadsheetId: "", sheetName: "", rowNumber: 2 },
+  },
+  {
+    key: "gs-search-rows",
+    label: "Google Sheets – Search Rows",
+    category: "action",
+    nodeType: "google_sheets.action.searchRows",
+    defaultConfig: { connectionId: "", spreadsheetId: "", sheetName: "", searchValue: "", searchColumn: "ALL", limit: 10 },
+  },
+  {
+    key: "gs-update-row",
+    label: "Google Sheets – Update Row",
+    category: "action",
+    nodeType: "google_sheets.action.updateRow",
+    defaultConfig: { connectionId: "", spreadsheetId: "", sheetName: "", rowNumber: 2, values: {} },
+  },
   {
     key: "gmail-send-email",
     label: "Gmail – Send Email",
@@ -305,8 +364,10 @@ function toReactFlowNodes(
     position: node.position,
     data: {
       label: templateByType[node.nodeType]?.label || node.nodeType,
+      category: node.category,
       onAddNode: () => onAddNode?.(node.id),
       canAdd: !edges.some((e) => e.from === node.id),
+      appIcon: getAppIcon(node.nodeType),
     },
     sourcePosition: Position.Bottom,
     targetPosition: Position.Top,
@@ -328,6 +389,46 @@ function toReactFlowEdges(edges: BuilderEdge[]): FlowEdge[] {
     style: { stroke: "#3b82f6", strokeWidth: 4 },
     markerEnd: { type: MarkerType.ArrowClosed, color: "#3b82f6" },
   }));
+}
+
+function getAppIcon(nodeType: string): React.ReactNode | null {
+  if (nodeType.startsWith("google_sheets")) {
+    return (
+      <svg width="100%" height="100%" viewBox="0 0 24 24" role="img" aria-label="Google Sheets" style={{ display: "block" }}>
+        <rect x="5" y="3" width="14" height="18" rx="2" ry="2" fill="#0f9d58" stroke="#0f9d58" />
+        <path d="M8 8h8M8 12h8M8 16h4" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  if (nodeType.startsWith("google_forms")) {
+    return (
+      <svg width="100%" height="100%" viewBox="0 0 24 24" role="img" aria-label="Google Forms" style={{ display: "block" }}>
+        <rect x="5" y="3" width="14" height="18" rx="2" ry="2" fill="#673ab7" stroke="#673ab7" />
+        <path d="M9 9h6M9 12h6M9 15h4" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  if (nodeType.startsWith("gmail")) {
+    return (
+      <svg width="100%" height="100%" viewBox="0 0 24 24" role="img" aria-label="Gmail" style={{ display: "block" }}>
+        <rect x="4" y="5" width="16" height="14" rx="2" ry="2" fill="#ffffff" stroke="#d93025" />
+        <path d="M5 7l7 5 7-5" stroke="#d93025" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+
+  if (nodeType.startsWith("ai.")) {
+    return (
+      <svg width="100%" height="100%" viewBox="0 0 24 24" role="img" aria-label="AI" style={{ display: "block" }}>
+        <circle cx="12" cy="12" r="9" fill="#1a73e8" stroke="#1a73e8" />
+        <text x="12" y="15" textAnchor="middle" fontSize="9" fill="#ffffff" fontWeight="700">AI</text>
+      </svg>
+    );
+  }
+
+  return null;
 }
 
 function serializeDefinition(state: WorkflowState): WorkflowDefinition {
@@ -1069,20 +1170,22 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
     }
   }, [props.workflowId, status]);
 
-  const handleExecute = useCallback(async () => {
+  const handleExecute = useCallback(async (testMode: boolean = false) => {
     setExecuting(true);
     setExecuteMessage(null);
     try {
       const res = await fetch(`/api/workflows/${props.workflowId}/execute`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ executionMode: testMode ? "test" : "live" }),
       });
       const json = await res.json();
       if (!res.ok) {
         setExecuteMessage(json?.error || "Failed to execute workflow");
       } else {
-        setExecuteMessage(`Execution started: ${json.executionId}`);
+        setExecuteMessage(
+          `${testMode ? "Test" : "Live"} execution started: ${json.executionId}`
+        );
       }
     } catch (error) {
       setExecuteMessage(error instanceof Error ? error.message : "Failed to execute workflow");
@@ -1126,7 +1229,10 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
                 ? "Deactivate"
                 : "Activate"}
             </Button>
-            <Button variant="secondary" onClick={handleExecute} disabled={executing}>
+            <Button variant="outline" onClick={() => handleExecute(true)} disabled={executing}>
+              {executing ? "Testing..." : "🧪 Test Trigger"}
+            </Button>
+            <Button variant="secondary" onClick={() => handleExecute(false)} disabled={executing}>
               {executing ? "Executing..." : "Execute Workflow"}
             </Button>
             <Button onClick={handleSave} disabled={saving}>

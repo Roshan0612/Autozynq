@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { AutomationNode, NodeContext, OutputField } from "../base";
 import { getConnection, updateConnection } from "../../connections/service";
-import { resolveTemplate } from "../../execution/templateResolver";
+import { extractTemplateRefs, resolveReference, resolveTemplate } from "../../execution/templateResolver";
 import { getGoogleOAuthClient } from "@/lib/integrations/google/auth";
 import { OAuthExpiredError } from "@/lib/errors";
 
@@ -142,11 +142,18 @@ export const gmailSendEmailAction: AutomationNode = {
   ],
 
   async run(ctx: NodeContext) {
+    const executionMode = ctx.executionMode || "live";
+    const isTest = executionMode === "test";
     // Parse config defensively to support manual Execute with incomplete templates
     const cfgResult = configSchema.safeParse(ctx.config);
     let cfg: Config;
     if (!cfgResult.success) {
-      console.warn("[Gmail] Config invalid - using test defaults for manual execution", cfgResult.error?.errors);
+      if (!isTest) {
+        throw new Error(
+          `[Gmail] Config invalid in live mode: ${JSON.stringify(cfgResult.error?.errors || [])}`
+        );
+      }
+      console.warn("[Gmail] Config invalid - using test defaults for test execution", cfgResult.error?.errors);
       const raw = (ctx.config || {}) as any;
       cfg = {
         connectionId: raw.connectionId || "",
@@ -170,6 +177,15 @@ export const gmailSendEmailAction: AutomationNode = {
     // Get previous outputs for template resolution
     const previousOutputs = ctx.previousOutputs || {};
 
+    const findMissingRef = (template: string): string | null => {
+      const refs = extractTemplateRefs(template || "");
+      for (const ref of refs) {
+        const val = resolveReference(ref, previousOutputs);
+        if (val === undefined) return ref;
+      }
+      return null;
+    };
+
     // Resolve all template strings
     let to = resolveTemplate(cfg.to, previousOutputs);
     let subject = resolveTemplate(cfg.subject, previousOutputs);
@@ -177,15 +193,30 @@ export const gmailSendEmailAction: AutomationNode = {
     const cc = cfg.cc ? resolveTemplate(cfg.cc, previousOutputs) : undefined;
     const bcc = cfg.bcc ? resolveTemplate(cfg.bcc, previousOutputs) : undefined;
 
-    // Fallbacks for manual test when templates resolve to empty
-    if (!to) {
+    const toMissing = findMissingRef(cfg.to);
+    const subjectMissing = findMissingRef(cfg.subject);
+    const bodyMissing = findMissingRef(cfg.bodyHtml);
+
+    const missingError = (field: string, ref?: string) =>
+      new Error(
+        ref
+          ? `Gmail node failed: ${ref} is undefined`
+          : `Gmail node failed: ${field} resolved empty`
+      );
+
+    if (!to || !to.trim()) {
+      if (!isTest) throw missingError("to", toMissing || undefined);
       to = "test@example.com";
-      console.warn("[Gmail] 'to' resolved empty - using test@example.com for manual execution");
+      console.warn("[Gmail] 'to' resolved empty - using test@example.com for test execution");
     }
-    if (!subject) {
+
+    if (!subject || !subject.trim()) {
+      if (!isTest) throw missingError("subject", subjectMissing || undefined);
       subject = "New Form Submission (Test)";
     }
-    if (!bodyHtml) {
+
+    if (!bodyHtml || !bodyHtml.trim()) {
+      if (!isTest) throw missingError("bodyHtml", bodyMissing || undefined);
       bodyHtml = "<h2>New Form Submission</h2><p>This is a test message sent during manual execution.</p>";
     }
 

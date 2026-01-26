@@ -12,7 +12,6 @@ import {
 } from "../triggers/subscriptions";
 import { generateRandomId } from "../utils";
 import { getLatestResponseId } from "../integrations/google/forms";
-import { prisma } from "../prisma";
 import { connectionHasScopes } from "../integrations/google/auth";
 
 /**

@@ -4,6 +4,7 @@ import { emailNodes } from "./email";
 import { slackNodes } from "./slack";
 import { ifConditionNode } from "./logic";
 import { googleFormsNodes } from "./google_forms";
+import { googleSheetsNodes } from "./google_sheets";
 import { testPassthroughTrigger } from "./test";
 import { webhookTriggerNode } from "./core/webhook.trigger";
 import { manualTriggerNode } from "./core/manual.trigger";
@@ -21,6 +22,7 @@ export const nodeRegistry: Record<string, AutomationNode> = {
   ...emailNodes,
   ...slackNodes,
   ...googleFormsNodes,
+  ...googleSheetsNodes,
   [ifConditionNode.type]: ifConditionNode,
   [testPassthroughTrigger.type]: testPassthroughTrigger,
    [webhookTriggerNode.type]: webhookTriggerNode,

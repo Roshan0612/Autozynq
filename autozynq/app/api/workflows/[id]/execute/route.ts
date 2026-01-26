@@ -59,13 +59,14 @@ export async function POST(
 
     // Parse request body
     const body = await req.json().catch(() => ({}));
-    const { triggerInput } = body;
+    const { triggerInput, executionMode } = body as { triggerInput?: unknown; executionMode?: "live" | "test" };
 
     // Execute workflow
     const executionId = await runWorkflow({
       workflowId,
       userId: workflow.userId,
       triggerInput,
+      executionMode: executionMode || "live",
     });
 
     // Fetch execution status

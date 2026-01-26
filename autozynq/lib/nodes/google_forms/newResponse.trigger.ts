@@ -131,24 +131,31 @@ export const googleFormsNewResponseTrigger: AutomationNode = {
     // Parse config defensively; config may be absent during manual Execute
     const cfgResult = configSchema.safeParse(ctx.config);
     const cfg: Partial<Config> = cfgResult.success ? cfgResult.data : {};
+    const executionMode = ctx.executionMode || "live";
+    const isTest = executionMode === "test" || (payload as any).__testTrigger === true;
 
     // If manually testing (no input), return test data
-    if (!payload.responseId || !payload.answers) {
-      console.warn("[Google Forms Trigger] No input data - using test payload for manual execution");
+    const hasRealPayload = Boolean((payload as any).responseId && (payload as any).answers);
+
+    // If manually testing via explicit Test Trigger, return sample payload
+    if (!hasRealPayload && isTest) {
+      console.warn("[Google Forms Trigger] Test mode - returning sample payload");
       return {
         eventId: "test-event-id",
-        formId: payload.formId || (cfg.formId ?? "test-form-id"),
+        formId: (payload as any).formId || (cfg.formId ?? "test-form-id"),
         responseId: "test-response-id",
         submittedAt: new Date().toISOString(),
         respondentEmail: "test@example.com",
-        // Test answers - replace with your actual form fields
         answers: {
-          Email: "test@example.com",
-          Name: "Test User",
-          Message: "This is a test form submission",
-          Phone: "123-456-7890",
+          email: "test@example.com",
+          name: "Test User",
+          message: "This is a test form submission",
         },
       };
+    }
+
+    if (!hasRealPayload) {
+      throw new Error("Trigger has not received a real Google Form submission yet");
     }
 
     // Return normalized output matching template syntax: {{steps.trigger1.answers.fieldName}}

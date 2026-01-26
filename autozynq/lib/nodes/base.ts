@@ -20,6 +20,8 @@ export interface NodeContext {
   stepIndex: number; // Current step number in execution
   // NEW: Access to previous node outputs for template resolution
   previousOutputs?: Record<string, unknown>; // { nodeId: output }
+  // Execution mode: live (real runs) vs test (explicit “Test Trigger”)
+  executionMode?: "live" | "test";
 }
 
 // Base interface that all automation nodes must implement.
@@ -31,6 +33,10 @@ export interface AutomationNode {
   description: string; // Short description of what the node does
   configSchema: ZodSchema; // Validates node.config in workflow definition
   outputSchema: ZodSchema; // Validates data emitted by node.run()
+  
+  // UI Metadata
+  app?: string; // App/integration name (e.g., "Google Sheets", "Gmail")
+  icon?: string; // Icon name or URL (optional)
   
   // NEW: Dynamic output field introspection (used by UI for field picker)
   outputFields: OutputField[]; // Static output fields (can be overridden dynamically)

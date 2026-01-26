@@ -52,7 +52,19 @@ export async function getFormSchema(connectionId: string, formId: string) {
   const items = form.items || [];
   const questions = items
     .filter((it) => it.questionItem)
-    .map((it) => ({ id: it.itemId!, title: it.title || "Untitled", type: it.questionItem!.question!.questionType || "TEXT" }));
+    .map((it) => {
+      const question = it.questionItem!.question!;
+      // Use questionId because responses key answers by questionId, not itemId
+      const questionId = question.questionId || it.itemId!;
+      return {
+        id: questionId,
+        title: it.title || "Untitled",
+        type: question.questionType || "TEXT",
+      };
+    });
+  
+  console.log("[Forms] getFormSchema - Retrieved questions:", questions);
+  
   return { formId, title: form.title || "Untitled Form", questions };
 }
 
@@ -63,6 +75,9 @@ export async function listNewResponses(connectionId: string, formId: string, las
   const resp = await forms.forms.responses.list({ formId, pageSize: 50 });
   const responses = resp.data.responses || [];
 
+  console.log(`[Forms] listNewResponses - Found ${responses.length} total responses`);
+  console.log(`[Forms] listNewResponses - lastResponseId: ${lastResponseId || "NULL (first poll)"}`);
+
   // If we have lastResponseId, only keep newer ones (assuming API returns newest first)
   const newOnes = [] as typeof responses;
   for (const r of responses) {
@@ -72,6 +87,8 @@ export async function listNewResponses(connectionId: string, formId: string, las
       break; // stop at last seen
     }
   }
+
+  console.log(`[Forms] listNewResponses - Returning ${newOnes.length} new response(s)`);
   return newOnes;
 }
 
@@ -94,6 +111,10 @@ export function normalizeAnswers(schema: { questions: Array<{ id: string; title:
   // Map questionId -> title
   const titleById = new Map(schema.questions.map((q) => [q.id, q.title]));
 
+  console.log("[Forms] normalizeAnswers - Schema questions:", schema.questions);
+  console.log("[Forms] normalizeAnswers - Response answer keys:", Object.keys(answers));
+  console.log("[Forms] normalizeAnswers - titleById map:", Array.from(titleById.entries()));
+
   for (const [questionId, ans] of Object.entries<any>(answers)) {
     const title = titleById.get(questionId) || questionId;
     // Text answers may have array of answers
@@ -107,8 +128,11 @@ export function normalizeAnswers(schema: { questions: Array<{ id: string; title:
     } else if (ans.choiceAnswers?.answers?.length) {
       value = ans.choiceAnswers.answers.map((a: any) => a.value).join(", ");
     }
+    console.log(`[Forms] Mapped questionId=${questionId} -> title=${title}, value=${value}`);
     answersObj[title] = value;
   }
+
+  console.log("[Forms] Final normalized answers:", answersObj);
   return answersObj;
 }
 
