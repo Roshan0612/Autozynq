@@ -184,6 +184,13 @@ export async function runWorkflow(params: RunWorkflowParams): Promise<string> {
     // STEP 3: Build execution graph (adjacency structures)
     // ============================================================================
 
+    console.log("[Engine] Building execution graph from definition:", {
+      nodeCount: definition.nodes.length,
+      edgeCount: definition.edges.length,
+      nodeIds: definition.nodes.map(n => n.id),
+      edges: definition.edges.map(e => `${e.from} → ${e.to}`),
+    });
+
     const graph = buildExecutionGraph(definition.nodes, definition.edges);
 
     // ============================================================================

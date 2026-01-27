@@ -121,7 +121,9 @@ export async function GET(req: NextRequest) {
           name: profile.name,
           picture: profile.picture,
           googleUserId: profile.id,
+          // Store scopes under both keys for backward compatibility
           scope: token.scope,
+          scopes: token.scope,
         },
       },
     });

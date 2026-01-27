@@ -11,6 +11,8 @@ const GOOGLE_SCOPES = [
   "https://www.googleapis.com/auth/forms.body.readonly",
   // Drive: to discover forms in user's Drive
   "https://www.googleapis.com/auth/drive.readonly",
+  // Sheets: read + write
+  "https://www.googleapis.com/auth/spreadsheets",
   // Gmail: send emails
   "https://www.googleapis.com/auth/gmail.send",
 ];

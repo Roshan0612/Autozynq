@@ -26,6 +26,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConnectionPicker } from "@/components/ConnectionPicker";
 import { GoogleFormPicker } from "@/components/GoogleFormPicker";
+import { GoogleSpreadsheetPicker } from "@/app/components/GoogleSpreadsheetPicker";
+import { GoogleSheetPicker } from "@/app/components/GoogleSheetPicker";
+import { GoogleSheetColumnMapper } from "@/app/components/GoogleSheetColumnMapper";
 import { WorkflowDefinition } from "@/lib/workflow/schema";
 import { WorkflowStatus } from "@prisma/client";
 
@@ -280,28 +283,35 @@ const NODE_LIBRARY: NodeTemplate[] = [
     label: "Google Sheets – Watch New Rows",
     category: "trigger",
     nodeType: "google_sheets.trigger.watchNewRows",
-    defaultConfig: { connectionId: "", spreadsheetId: "", sheetName: "", fromRow: 2, limit: undefined, startMode: "from_now" },
+    defaultConfig: { connectionId: "", spreadsheetId: "", spreadsheetName: "", sheetName: "", fromRow: 2, limit: undefined, startMode: "from_now" },
   },
   {
     key: "gs-get-row",
     label: "Google Sheets – Get Row",
     category: "action",
     nodeType: "google_sheets.action.getRow",
-    defaultConfig: { connectionId: "", spreadsheetId: "", sheetName: "", rowNumber: 2 },
+    defaultConfig: { connectionId: "", spreadsheetId: "", spreadsheetName: "", sheetName: "", rowNumber: 2 },
   },
   {
     key: "gs-search-rows",
     label: "Google Sheets – Search Rows",
     category: "action",
     nodeType: "google_sheets.action.searchRows",
-    defaultConfig: { connectionId: "", spreadsheetId: "", sheetName: "", searchValue: "", searchColumn: "ALL", limit: 10 },
+    defaultConfig: { connectionId: "", spreadsheetId: "", spreadsheetName: "", sheetName: "", searchValue: "", searchColumn: "ALL", limit: 10 },
   },
   {
     key: "gs-update-row",
     label: "Google Sheets – Update Row",
     category: "action",
     nodeType: "google_sheets.action.updateRow",
-    defaultConfig: { connectionId: "", spreadsheetId: "", sheetName: "", rowNumber: 2, values: {} },
+    defaultConfig: { connectionId: "", spreadsheetId: "", spreadsheetName: "", sheetName: "", rowNumber: 2, values: {} },
+  },
+  {
+    key: "gs-create-row",
+    label: "Google Sheets – Create Row",
+    category: "action",
+    nodeType: "google_sheets.action.createRow",
+    defaultConfig: { connectionId: "", spreadsheetId: "", spreadsheetName: "", sheetName: "", columnValues: {} },
   },
   {
     key: "gmail-send-email",
@@ -533,7 +543,7 @@ function NodeConfigForm({
             <GoogleFormPicker
               connectionId={node.config.connectionId}
               value={node.config.formId}
-              onChange={(formId) => onChange({ ...node.config, formId })}
+              onChange={(formId: string) => onChange({ ...node.config, formId })}
             />
           </div>
           <p className="text-xs text-muted-foreground">
@@ -974,6 +984,256 @@ function NodeConfigForm({
               placeholder="Comparison value"
               className="w-full rounded border px-2 py-1 text-sm"
             />
+          </div>
+        </div>
+      );
+    case "google_sheets.action.createRow":
+      return (
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Google Account</p>
+            <ConnectionPicker
+              provider="google"
+              value={node.config.connectionId}
+              onChange={(id) => onChange({ ...node.config, connectionId: id })}
+            />
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Spreadsheet</p>
+            <GoogleSpreadsheetPicker
+              connectionId={node.config.connectionId}
+              value={node.config.spreadsheetId}
+              onChange={(spreadsheetId: string, spreadsheetName: string) =>
+                onChange({ ...node.config, spreadsheetId, spreadsheetName })
+              }
+            />
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Sheet</p>
+            <GoogleSheetPicker
+              connectionId={node.config.connectionId}
+              spreadsheetId={node.config.spreadsheetId}
+              value={node.config.sheetName}
+              onChange={(sheetName: string) => onChange({ ...node.config, sheetName })}
+            />
+          </div>
+          {node.config.connectionId && node.config.spreadsheetId && node.config.sheetName && (
+            <GoogleSheetColumnMapper
+              connectionId={node.config.connectionId}
+              spreadsheetId={node.config.spreadsheetId}
+              sheetName={node.config.sheetName}
+              values={node.config.columnValues || {}}
+              onChange={(columnValues: Record<string, string>) => onChange({ ...node.config, columnValues })}
+            />
+          )}
+        </div>
+      );
+    case "google_sheets.action.updateRow":
+      return (
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Google Account</p>
+            <ConnectionPicker
+              provider="google"
+              value={node.config.connectionId}
+              onChange={(id) => onChange({ ...node.config, connectionId: id })}
+            />
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Spreadsheet</p>
+            <GoogleSpreadsheetPicker
+              connectionId={node.config.connectionId}
+              value={node.config.spreadsheetId}
+              onChange={(spreadsheetId: string, spreadsheetName: string) =>
+                onChange({ ...node.config, spreadsheetId, spreadsheetName })
+              }
+            />
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Sheet</p>
+            <GoogleSheetPicker
+              connectionId={node.config.connectionId}
+              spreadsheetId={node.config.spreadsheetId}
+              value={node.config.sheetName}
+              onChange={(sheetName: string) => onChange({ ...node.config, sheetName })}
+            />
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Row Number</p>
+            <input
+              type="number"
+              value={node.config.rowNumber || 2}
+              onChange={(e) => onChange({ ...node.config, rowNumber: parseInt(e.target.value) || 2 })}
+              placeholder="2"
+              className="w-full rounded border px-2 py-1 text-sm"
+            />
+            <p className="text-xs text-muted-foreground">Can use {"{{steps.trigger1.rowNumber}}"}</p>
+          </div>
+          {node.config.connectionId && node.config.spreadsheetId && node.config.sheetName && (
+            <GoogleSheetColumnMapper
+              connectionId={node.config.connectionId}
+              spreadsheetId={node.config.spreadsheetId}
+              sheetName={node.config.sheetName}
+              values={node.config.values || {}}
+              onChange={(values: Record<string, string>) => onChange({ ...node.config, values })}
+            />
+          )}
+        </div>
+      );
+    case "google_sheets.action.getRow":
+      return (
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Google Account</p>
+            <ConnectionPicker
+              provider="google"
+              value={node.config.connectionId}
+              onChange={(id) => onChange({ ...node.config, connectionId: id })}
+            />
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Spreadsheet</p>
+            <GoogleSpreadsheetPicker
+              connectionId={node.config.connectionId}
+              value={node.config.spreadsheetId}
+              onChange={(spreadsheetId: string, spreadsheetName: string) =>
+                onChange({ ...node.config, spreadsheetId, spreadsheetName })
+              }
+            />
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Sheet</p>
+            <GoogleSheetPicker
+              connectionId={node.config.connectionId}
+              spreadsheetId={node.config.spreadsheetId}
+              value={node.config.sheetName}
+              onChange={(sheetName: string) => onChange({ ...node.config, sheetName })}
+            />
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Row Number</p>
+            <input
+              type="number"
+              value={node.config.rowNumber || 2}
+              onChange={(e) => onChange({ ...node.config, rowNumber: parseInt(e.target.value) || 2 })}
+              placeholder="2"
+              className="w-full rounded border px-2 py-1 text-sm"
+            />
+            <p className="text-xs text-muted-foreground">Can use {"{{steps.trigger1.rowNumber}}"}</p>
+          </div>
+        </div>
+      );
+    case "google_sheets.action.searchRows":
+      return (
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Google Account</p>
+            <ConnectionPicker
+              provider="google"
+              value={node.config.connectionId}
+              onChange={(id) => onChange({ ...node.config, connectionId: id })}
+            />
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Spreadsheet</p>
+            <GoogleSpreadsheetPicker
+              connectionId={node.config.connectionId}
+              value={node.config.spreadsheetId}
+              onChange={(spreadsheetId: string, spreadsheetName: string) =>
+                onChange({ ...node.config, spreadsheetId, spreadsheetName })
+              }
+            />
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Sheet</p>
+            <GoogleSheetPicker
+              connectionId={node.config.connectionId}
+              spreadsheetId={node.config.spreadsheetId}
+              value={node.config.sheetName}
+              onChange={(sheetName: string) => onChange({ ...node.config, sheetName })}
+            />
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Search Column</p>
+            <input
+              value={node.config.searchColumn || "ALL"}
+              onChange={(e) => onChange({ ...node.config, searchColumn: e.target.value })}
+              placeholder="ALL or column name"
+              className="w-full rounded border px-2 py-1 text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Search Value</p>
+            <input
+              value={node.config.searchValue || ""}
+              onChange={(e) => onChange({ ...node.config, searchValue: e.target.value })}
+              placeholder="{{`{{steps.trigger1.email}}`}}"
+              className="w-full rounded border px-2 py-1 text-sm"
+            />
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Limit (optional)</p>
+            <input
+              type="number"
+              value={node.config.limit || ""}
+              onChange={(e) => onChange({ ...node.config, limit: e.target.value ? parseInt(e.target.value) : undefined })}
+              placeholder="10"
+              className="w-full rounded border px-2 py-1 text-sm"
+            />
+          </div>
+        </div>
+      );
+    case "google_sheets.trigger.watchNewRows":
+      return (
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Google Account</p>
+            <ConnectionPicker
+              provider="google"
+              value={node.config.connectionId}
+              onChange={(id) => onChange({ ...node.config, connectionId: id })}
+            />
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Spreadsheet</p>
+            <GoogleSpreadsheetPicker
+              connectionId={node.config.connectionId}
+              value={node.config.spreadsheetId}
+              onChange={(spreadsheetId: string, spreadsheetName: string) =>
+                onChange({ ...node.config, spreadsheetId, spreadsheetName })
+              }
+            />
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Sheet</p>
+            <GoogleSheetPicker
+              connectionId={node.config.connectionId}
+              spreadsheetId={node.config.spreadsheetId}
+              value={node.config.sheetName}
+              onChange={(sheetName: string) => onChange({ ...node.config, sheetName })}
+            />
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Start From Row</p>
+            <input
+              type="number"
+              value={node.config.fromRow || 2}
+              onChange={(e) => onChange({ ...node.config, fromRow: parseInt(e.target.value) || 2 })}
+              placeholder="2"
+              className="w-full rounded border px-2 py-1 text-sm"
+            />
+            <p className="text-xs text-muted-foreground">Row to start polling from (usually 2 after headers)</p>
+          </div>
+          <div className="space-y-1">
+            <p className="font-mono text-xs text-muted-foreground">Start Mode</p>
+            <select
+              value={node.config.startMode || "from_now"}
+              onChange={(e) => onChange({ ...node.config, startMode: e.target.value })}
+              className="w-full rounded border px-2 py-1 text-sm"
+            >
+              <option value="from_now">From now (skip existing rows)</option>
+              <option value="all_existing_rows">All existing rows</option>
+            </select>
           </div>
         </div>
       );
