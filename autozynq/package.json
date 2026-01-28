@@ -4,10 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "prepare": "husky",
+    "prepare": "if [ -z \"$CI\" ]; then husky; fi",
+    "postinstall": "prisma generate",
     "poll:google-forms": "tsx scripts/poll-google-forms.ts",
     "poll:google-sheets": "tsx scripts/poll-google-sheets.ts"
   },
