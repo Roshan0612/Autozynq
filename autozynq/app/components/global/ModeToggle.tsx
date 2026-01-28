@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-  import {  ChevronsUpDown,  } from "lucide-react";
+
 export default function ModeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
 

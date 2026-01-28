@@ -9,7 +9,7 @@ import { prisma } from "@/lib/prisma";
  * List folders for folder picker
  */
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = (await getServerSession(authOptions)) as { user?: { id?: string; email?: string } } | null;
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -33,14 +33,16 @@ export async function GET(req: NextRequest) {
   try {
     const folders = await listFolders(connectionId);
     return NextResponse.json({ folders });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Google Drive] Error listing folders:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
       {
         error: "Failed to fetch folders",
-        details: error.message,
+        details: errorMessage,
       },
       { status: 500 }
     );
   }
 }
+

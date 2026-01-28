@@ -32,6 +32,8 @@ export const ifConditionNode: AutomationNode = {
   outputSchema: z.object({
     outcome: z.enum(["true", "false"]),
   }),
+  outputFields: [],
+  requiresConnection: false,
 
   async run(ctx: NodeContext): Promise<{ outcome: "true" | "false" }> {
     const { input, config } = ctx;

@@ -29,7 +29,7 @@ export async function POST(
     // STEP 1: Authenticate user
     // ============================================================================
 
-    const session = await getServerSession(authOptions);
+    const session = (await getServerSession(authOptions)) as { user?: { id?: string; email?: string } } | null;
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

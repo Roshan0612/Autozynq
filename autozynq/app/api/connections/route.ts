@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth/options";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = (await getServerSession(authOptions)) as { user?: { id?: string; email?: string } } | null;
   const userId = session?.user?.id as string | undefined;
 
   if (!userId) {
@@ -30,9 +30,10 @@ export async function GET(req: NextRequest) {
   const results = connections.map((conn) => ({
     id: conn.id,
     provider: conn.provider,
-    email: (conn.metadata as any)?.email ?? "",
+    email: (conn.metadata as Record<string, unknown>)?.email ?? "",
     createdAt: conn.createdAt,
   }));
 
   return NextResponse.json(results);
 }
+

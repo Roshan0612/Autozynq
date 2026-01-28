@@ -46,7 +46,7 @@ export function GoogleSheetColumnMapper({
         const responseText = await res.text();
         console.log("[GoogleSheetColumnMapper] Response body:", responseText);
         
-        let data: any = {};
+        let data: Record<string, unknown> = {};
         try {
           data = JSON.parse(responseText);
         } catch (e) {
@@ -54,7 +54,7 @@ export function GoogleSheetColumnMapper({
         }
 
         if (!res.ok) {
-          const errorMsg = data.error || data.details || `HTTP ${res.status}: ${res.statusText}`;
+          const errorMsg = String(data.error || data.details || `HTTP ${res.status}: ${res.statusText}`);
           console.error("[GoogleSheetColumnMapper] API error:", { status: res.status, statusText: res.statusText, error: errorMsg, data, responseText });
           throw new Error(errorMsg);
         }
@@ -64,11 +64,12 @@ export function GoogleSheetColumnMapper({
           throw new Error("Invalid columns data returned from API");
         }
 
-        console.log("[GoogleSheetColumnMapper] Successfully fetched", data.columns.length, "columns");
-        setColumns(data.columns);
-      } catch (err: any) {
+        console.log("[GoogleSheetColumnMapper] Successfully fetched", (data.columns as unknown[])?.length, "columns");
+        setColumns((data.columns as Column[]) || []);
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : "Unknown error";
         console.error("[GoogleSheetColumnMapper] Error fetching columns:", err);
-        setError(err.message);
+        setError(errorMessage);
         setColumns([]);
       } finally {
         setLoading(false);

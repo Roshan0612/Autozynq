@@ -11,7 +11,7 @@ import { Activity, Zap, TrendingUp, Plug2, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export default function DashboardPage() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const router = useRouter();
   const [stats, setStats] = useState({
     activeWorkflows: 0,
@@ -41,7 +41,7 @@ export default function DashboardPage() {
         const connections = await connectionsRes.json();
 
         const activeWorkflowCount = Array.isArray(workflows)
-          ? workflows.filter((w: any) => w.status === "ACTIVE").length
+          ? workflows.filter((w: Record<string, unknown>) => w.status === "ACTIVE").length
           : 0;
         const totalExecutionCount = Array.isArray(executions) ? executions.length : 0;
         const connectedAppsCount = Array.isArray(connections) ? connections.length : 0;
@@ -50,7 +50,7 @@ export default function DashboardPage() {
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         const recentExecutions = Array.isArray(executions)
-          ? executions.filter((e: any) => new Date(e.startedAt) > thirtyDaysAgo)
+          ? executions.filter((e: Record<string, unknown>) => new Date(e.startedAt as string) > thirtyDaysAgo)
           : [];
         const avgDaily = Math.round(recentExecutions.length / 30);
 

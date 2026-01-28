@@ -63,7 +63,7 @@ export function resolveReference(
   }
 
   // Traverse nested path
-  let value: any = nodeOutput;
+  let value: unknown = nodeOutput;
   for (const key of fieldPath) {
     if (value === null || value === undefined) {
       return undefined;
@@ -73,7 +73,7 @@ export function resolveReference(
     if (Array.isArray(value) && /^\d+$/.test(key)) {
       value = value[parseInt(key, 10)];
     } else if (typeof value === "object") {
-      value = (value as Record<string, any>)[key];
+      value = (value as Record<string, unknown>)[key];
     } else {
       return undefined;
     }
@@ -140,7 +140,7 @@ export function resolveConfigTemplates(
   }
 
   if (typeof config === "object" && config !== null) {
-    const resolved: Record<string, any> = {};
+    const resolved: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(config)) {
       resolved[key] = resolveConfigTemplates(value, previousOutputs);
     }

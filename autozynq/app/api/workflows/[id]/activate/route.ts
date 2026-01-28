@@ -4,7 +4,6 @@ import { authOptions } from "@/lib/auth/options";
 import {
   activateWorkflow,
   deactivateWorkflow,
-  toggleWorkflowStatus,
   WorkflowActivationError,
 } from "@/lib/workflow/activation";
 import { prisma } from "@/lib/prisma";
@@ -22,16 +21,17 @@ import { prisma } from "@/lib/prisma";
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Authenticate user
-    const session = await getServerSession(authOptions);
+    const session = (await getServerSession(authOptions)) as { user?: { id?: string; email?: string } } | null;
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const workflowId = params.id;
+    const { id } = await params;
+    const workflowId = id;
 
     // Verify workflow exists and user owns it
     const workflow = await prisma.workflow.findUnique({
@@ -88,16 +88,17 @@ export async function POST(
  */
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Authenticate user
-    const session = await getServerSession(authOptions);
+    const session = (await getServerSession(authOptions)) as { user?: { id?: string; email?: string } } | null;
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const workflowId = params.id;
+    const { id } = await params;
+    const workflowId = id;
 
     // Verify workflow exists and user owns it
     const workflow = await prisma.workflow.findUnique({

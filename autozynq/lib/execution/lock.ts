@@ -109,9 +109,6 @@ export async function acquireExecutionLock(
 
   const existingLock = await prisma.executionLock.findUnique({
     where: { workflowId },
-    include: {
-      // We need execution info to check status
-    },
   });
 
   if (existingLock) {
@@ -131,7 +128,7 @@ export async function acquireExecutionLock(
     if (execution?.status === "RUNNING") {
       // Lock is active - workflow is currently executing
       console.log(
-        `[Lock] Workflow ${workflowId} is currently RUNNING (execution: ${existingLock.executionId}). Rejecting concurrent execution.`
+        `[Lock] Workflow ${workflowId} is currently executing (execution: ${existingLock.executionId}). Rejecting concurrent execution.`
       );
 
       throw new WorkflowLockedError(
@@ -141,7 +138,8 @@ export async function acquireExecutionLock(
       );
     }
 
-    if (execution && execution.status !== "RUNNING") {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (execution && (execution.status as any) !== "RUNNING") {
       // Stale lock - execution finished but lock wasn't cleaned up
       console.warn(
         `[Lock] Stale lock detected for workflow ${workflowId}. Execution ${existingLock.executionId} has status ${execution.status}. Cleaning up.`
@@ -195,9 +193,11 @@ export async function acquireExecutionLock(
       executionId: newLock.executionId,
       acquiredAt: newLock.lockedAt,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as Record<string, unknown>;
     // Check if error is due to unique constraint violation
-    if (error.code === "P2002" && error.meta?.target?.includes("workflowId")) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (err.code === "P2002" && ((err.meta as any)?.target as string[])?.includes?.("workflowId")) {
       console.error(
         `[Lock] Lock acquisition failed due to constraint violation. Another concurrent request acquired the lock.`
       );

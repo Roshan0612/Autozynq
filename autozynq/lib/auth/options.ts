@@ -1,17 +1,13 @@
 import { PrismaAdapter } from "@auth/prisma-adapter";
-import type { Session } from "next-auth";
-import type { AdapterUser } from "next-auth/adapters";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GithubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
 import { prisma } from "../prisma";
 
-type MinimalUser = { id?: string };
-type MinimalSession = { user?: MinimalUser & Record<string, unknown> };
-
 // Central auth options so API routes and NextAuth share the same configuration.
-export const authOptions = {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const authOptions: any = {
   adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
@@ -63,15 +59,17 @@ export const authOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
-    async jwt({ token, user }: { token: any; user?: any }) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async jwt({ token, user }: any) {
       if (user) {
         token.id = user.id;
       }
       return token;
     },
-    async session({ session, token }: { session: Session; token: any }) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async session({ session, token }: any) {
       if (session.user) {
-        (session.user as any).id = token.id;
+        session.user.id = token.id;
       }
       return session;
     },

@@ -63,7 +63,8 @@ async function main() {
 
     console.log("\n=== Execution Result ===");
     console.log("Status:", execution?.status);
-    console.log("Steps:", execution?.steps?.length || 0);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    console.log("Steps:", (execution?.steps as any)?.length || 0);
     
     if (execution?.error) {
       console.error("Error:", JSON.stringify(execution.error, null, 2));

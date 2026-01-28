@@ -53,7 +53,7 @@ async function main() {
     console.log("🔗 Test 3: Setting sharing preference...");
     const shareResult = await setSharingPreference(
       connectionId,
-      createResult.folderId,
+      createResult.folderId!,
       "viewer",
       "anyone",
       undefined,

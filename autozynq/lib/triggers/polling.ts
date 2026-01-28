@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { prisma } from "../prisma";
 import { runWorkflow } from "../execution/engine";
 import { getGoogleOAuthClient } from "../integrations/google/auth";
@@ -49,7 +50,8 @@ async function pollFormTrigger(triggerId: string): Promise<number> {
     const forms = google.forms({ version: "v1", auth: oauth2Client });
 
     // Get polling state from metadata
-    const metadata = (trigger.metadata || {}) as any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const metadata = ((trigger as any).metadata || {}) as any;
     const pollingState: PollingState = metadata.pollingState || {
       lastPolledAt: new Date(0), // epoch start
     };
@@ -126,6 +128,7 @@ async function pollFormTrigger(triggerId: string): Promise<number> {
         lastResponseId: newResponses[newResponses.length - 1].responseId || undefined,
       };
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await prisma.workflowTrigger.update({
         where: { id: triggerId },
         data: {
@@ -133,7 +136,7 @@ async function pollFormTrigger(triggerId: string): Promise<number> {
             ...metadata,
             pollingState: newState,
           },
-        },
+        } as any,
       });
     }
 

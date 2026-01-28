@@ -24,6 +24,8 @@ export const gmailNewEmailTrigger: AutomationNode = {
   description: "Triggers when a new email is received in Gmail",
   configSchema,
   outputSchema,
+  outputFields: [],
+  requiresConnection: false,
 
   async run(ctx: NodeContext) {
     const config = configSchema.parse(ctx.config);

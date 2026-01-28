@@ -8,8 +8,8 @@ import { Input } from "@/components/ui/input";
 import { ConnectionPicker } from "@/components/ConnectionPicker";
 
 interface CreateFolderConfigProps {
-  config: any;
-  onChange: (config: any) => void;
+  config: Record<string, unknown>;
+  onChange: (config: Record<string, unknown>) => void;
   connectionId?: string;
 }
 
@@ -36,9 +36,10 @@ export function CreateFolderConfig({ config, onChange, connectionId }: CreateFol
         );
         if (!response.ok) throw new Error("Failed to fetch folders");
         const data = await response.json();
-        setFolders(data.folders || []);
-      } catch (err: any) {
-        setError(err.message);
+        setFolders((data.folders as Folder[]) || []);
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : "Unknown error";
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }
@@ -77,7 +78,7 @@ export function CreateFolderConfig({ config, onChange, connectionId }: CreateFol
         <p className="text-xs text-gray-500 mb-2">Select your Google account</p>
         <ConnectionPicker
           provider="google"
-          value={config?.connectionId || ""}
+          value={String(config?.connectionId || "")}
           onChange={(id) => onChange({ ...config, connectionId: id })}
         />
       </div>
@@ -91,7 +92,7 @@ export function CreateFolderConfig({ config, onChange, connectionId }: CreateFol
         
         {!loading && !error && (
           <>
-            <Select value={config?.parentFolderId || "root"} onValueChange={handleFolderSelect}>
+            <Select value={String(config?.parentFolderId || "root")} onValueChange={handleFolderSelect}>
               <SelectTrigger>
                 <SelectValue placeholder="My Drive (root)" />
               </SelectTrigger>
@@ -122,7 +123,7 @@ export function CreateFolderConfig({ config, onChange, connectionId }: CreateFol
             <Input
               type="text"
               placeholder="Paste folder ID"
-              value={config?.customParentFolderId || ""}
+              value={String(config?.customParentFolderId || "")}
               onChange={(e) => handleCustomIdChange(e.target.value)}
               className="text-sm"
             />
@@ -138,7 +139,7 @@ export function CreateFolderConfig({ config, onChange, connectionId }: CreateFol
           id="folder-name"
           type="text"
           placeholder="e.g., My New Folder"
-          value={config?.folderName || ""}
+          value={String(config?.folderName || "")}
           onChange={(e) => handleFolderNameChange(e.target.value)}
           className="mt-1"
         />

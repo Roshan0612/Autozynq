@@ -72,12 +72,13 @@ export async function getTriggerSubscriptionByPath(webhookPath: string) {
  */
 export async function updateSubscriptionAfterExecution(
   subscriptionId: string,
-  payload: any
+  payload: unknown
 ) {
   return await prisma.triggerSubscription.update({
     where: { id: subscriptionId },
     data: {
-      lastPayload: payload,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      lastPayload: payload as any,
       executionCount: {
         increment: 1,
       },

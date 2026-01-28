@@ -9,6 +9,8 @@ export const testPassthroughTrigger: AutomationNode = {
   description: "Testing trigger that passes through the input value directly",
   configSchema: z.object({}),
   outputSchema: z.any(),
+  outputFields: [],
+  requiresConnection: false,
 
   async run(ctx: NodeContext) {
     // Simply return the input value

@@ -20,6 +20,8 @@ export const googleFormsGetResponseAction: AutomationNode = {
   description: "Fetch a single response by responseId.",
   configSchema,
   outputSchema,
+  outputFields: [],
+  requiresConnection: false,
   async run(ctx: NodeContext) {
     const cfg = configSchema.parse(ctx.config);
     return {

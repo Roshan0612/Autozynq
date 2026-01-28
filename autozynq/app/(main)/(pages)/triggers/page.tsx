@@ -3,20 +3,11 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { authOptions } from "@/lib/auth/options";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { prisma } from "@/lib/prisma";
-import { CopyButton } from "@/app/components/CopyButton";
 
 async function getTriggerSubscriptions() {
-  const session = await getServerSession(authOptions);
+  const session = (await getServerSession(authOptions)) as { user?: { email?: string } } | null;
   if (!session?.user?.email) {
     redirect("/api/auth/signin");
   }
@@ -55,7 +46,6 @@ async function getTriggerSubscriptions() {
 
 export default async function TriggersPage() {
   const subscriptions = await getTriggerSubscriptions();
-  const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-6xl">
@@ -87,40 +77,43 @@ export default async function TriggersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {subscriptions.map((sub: any) => (
-                <TableRow key={sub.id}>
-                  <TableCell>
-                    <Link
-                      href={`/workflows/${sub.workflow.id}`}
-                      className="text-sm hover:underline text-blue-600"
-                    >
-                      {sub.workflow.name}
-                    </Link>
-                  </TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">
-                    {sub.nodeId}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{sub.triggerType}</Badge>
-                  </TableCell>
-                  <TableCell className="font-mono text-sm">
-                    <span className="bg-muted px-2 py-1 rounded">
-                      {sub.executionCount} executions
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {new Date(sub.createdAt).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    <Link
-                      href={`/triggers/${sub.id}`}
-                      className="text-sm text-blue-600 hover:underline"
-                    >
-                      View →
-                    </Link>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {subscriptions.map((sub: Record<string, unknown>) => {
+                const workflow = sub.workflow as Record<string, unknown>;
+                return (
+                  <TableRow key={String(sub.id)}>
+                    <TableCell>
+                      <Link
+                        href={`/workflows/${String(workflow.id)}`}
+                        className="text-sm hover:underline text-blue-600"
+                      >
+                        {String(workflow.name)}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">
+                      {String(sub.nodeId)}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{String(sub.triggerType)}</Badge>
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">
+                      <span className="bg-muted px-2 py-1 rounded">
+                        {String(sub.executionCount)} executions
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {new Date(sub.createdAt as Date).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      <Link
+                        href={`/triggers/${String(sub.id)}`}
+                        className="text-sm text-blue-600 hover:underline"
+                      >
+                        View →
+                      </Link>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>

@@ -80,11 +80,11 @@ export async function GET(req: NextRequest) {
   let state: { userId?: string; returnUrl?: string } = {};
   try {
     state = JSON.parse(Buffer.from(stateParam, "base64url").toString("utf8"));
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Invalid state" }, { status: 400 });
   }
 
-  const session = await getServerSession(authOptions);
+  const session = (await getServerSession(authOptions)) as { user?: { id?: string; email?: string } } | null;
   const sessionUserId = session?.user?.id as string | undefined;
   if (!sessionUserId || sessionUserId !== state.userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -127,11 +127,13 @@ export async function GET(req: NextRequest) {
         },
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("OAuth callback error:", error);
-    return NextResponse.json({ error: error?.message || "OAuth failed" }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : "OAuth failed";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 
   const returnUrl = state.returnUrl || "/";
   return NextResponse.redirect(returnUrl);
 }
+

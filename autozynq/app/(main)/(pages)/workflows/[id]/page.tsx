@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/auth/options";
 import { prisma } from "@/lib/prisma";
 
 async function getWorkflow(id: string) {
-  const session = await getServerSession(authOptions);
+  const session = (await getServerSession(authOptions)) as { user?: { email?: string } } | null;
   if (!session?.user?.email) {
     redirect("/api/auth/signin");
   }
@@ -33,15 +33,16 @@ async function getWorkflow(id: string) {
 
   return { workflow };
 }
-export default async function WorkflowDetailPage({ params }: { params: { id: string } }) {
-  const wf = await getWorkflow(params.id);
+export default async function WorkflowDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const wf = await getWorkflow(id);
   if (!wf) {
     redirect("/workflows");
   }
   const { workflow } = wf;
-  const definition = (workflow.definition as any) || {};
-  const nodes = definition.nodes || [];
-  const edges = definition.edges || [];
+  const definition = (workflow.definition as Record<string, unknown>) || {};
+  const nodes = (definition.nodes as unknown[]) || [];
+  const edges = (definition.edges as unknown[]) || [];
 
   return (
     <div className="container mx-auto py-8 px-4">

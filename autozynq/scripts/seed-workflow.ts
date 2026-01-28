@@ -121,16 +121,18 @@ async function main() {
 
   // Log workflow definition structure
   console.log("\n📋 Workflow Definition:");
-  console.log("Nodes:", workflow.definition.nodes.length);
-  console.log("Edges:", workflow.definition.edges.length);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const def = workflow.definition as any;
+  console.log("Nodes:", def.nodes.length);
+  console.log("Edges:", def.edges.length);
 
-  workflow.definition.nodes.forEach((node: any) => {
+  def.nodes.forEach((node: any) => {
     console.log(
       `  - ${node.id}: ${node.nodeType} (${node.category}) at ${node.position.x},${node.position.y}`
     );
   });
 
-  workflow.definition.edges.forEach((edge: any) => {
+  def.edges.forEach((edge: any) => {
     console.log(`  - ${edge.id}: ${edge.from} → ${edge.to}`);
   });
 

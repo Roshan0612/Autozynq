@@ -31,7 +31,7 @@ function getRedirectUri(origin: string): string {
 }
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = (await getServerSession(authOptions)) as { user?: { id?: string; email?: string } } | null;
   const userId = session?.user?.id as string | undefined;
 
   if (!userId) {
@@ -58,3 +58,4 @@ export async function GET(req: NextRequest) {
   const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
   return NextResponse.redirect(authUrl);
 }
+

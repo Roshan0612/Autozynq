@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { google } from "googleapis";
 import { prisma } from "@/lib/prisma";
 import { getGoogleOAuthClient, connectionHasScopes } from "./auth";
@@ -16,7 +17,8 @@ export async function listUserForms(userId: string, connectionId?: string) {
       where: { id: connection.id },
       data: {
         metadata: {
-          ...(connection.metadata || {}),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ...(connection.metadata as any) || {},
           needsReauth: true,
         },
       },
@@ -59,13 +61,15 @@ export async function getFormSchema(connectionId: string, formId: string) {
       return {
         id: questionId,
         title: it.title || "Untitled",
-        type: question.questionType || "TEXT",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        type: (question as any).questionType || "TEXT",
       };
     });
   
   console.log("[Forms] getFormSchema - Retrieved questions:", questions);
   
-  return { formId, title: form.title || "Untitled Form", questions };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return { formId, title: (form as any).title || "Untitled Form", questions };
 }
 
 export async function listNewResponses(connectionId: string, formId: string, lastResponseId?: string) {

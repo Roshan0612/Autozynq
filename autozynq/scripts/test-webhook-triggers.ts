@@ -91,7 +91,8 @@ async function main() {
   console.log("   Message:", activationResult.message);
   console.log("\n📋 Registered Triggers:");
 
-  for (const trigger of activationResult.triggers) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const trigger of (activationResult as any).triggers) {
     console.log(`   - Trigger ID: ${trigger.triggerId}`);
     console.log(`     Status: ${trigger.status}`);
     if (trigger.webhookUrl) {

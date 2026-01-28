@@ -4,18 +4,10 @@ import Link from "next/link";
 import { authOptions } from "@/lib/auth/options";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { prisma } from "@/lib/prisma";
 
 async function getExecution(id: string) {
-  const session = await getServerSession(authOptions);
+  const session = (await getServerSession(authOptions)) as { user?: { email?: string } } | null;
   if (!session?.user?.email) {
     redirect("/api/auth/signin");
   }
@@ -118,8 +110,8 @@ export default async function ExecutionDetailPage({
     );
   }
 
-  const steps = (execution.steps as any[]) || [];
-  const error = execution.error as any;
+  const steps = (execution.steps as unknown[]) || [];
+  const error = execution.error as Record<string, unknown>;
   const duration = execution.finishedAt
     ? new Date(execution.finishedAt).getTime() -
       new Date(execution.startedAt).getTime()
@@ -136,7 +128,7 @@ export default async function ExecutionDetailPage({
         </Link>
         <h1 className="text-2xl font-mono font-bold mb-1">Execution Detail</h1>
         <p className="text-sm text-muted-foreground">
-          Engine debugger. This page must answer: "Why did this execution fail?"
+          Engine debugger. This page must answer: &quot;Why did this execution fail?&quot;
         </p>
       </div>
 
@@ -261,35 +253,35 @@ export default async function ExecutionDetailPage({
                   Error Message
                 </dt>
                 <dd className="font-mono text-red-600 bg-white p-3 rounded border border-red-200">
-                  {error.message}
+                  {typeof error.message === 'string' ? error.message : String(error.message)}
                 </dd>
               </div>
 
-              {error.nodeId && (
+              {error.nodeId !== undefined && error.nodeId !== null && (
                 <div>
                   <dt className="font-mono text-muted-foreground">
                     Failed Node ID
                   </dt>
-                  <dd className="font-mono">{error.nodeId}</dd>
+                  <dd className="font-mono">{String(error.nodeId)}</dd>
                 </div>
               )}
 
-              {error.stepIndex !== undefined && (
+              {error.stepIndex !== undefined && error.stepIndex !== null && (
                 <div>
                   <dt className="font-mono text-muted-foreground">
                     Failed at Step
                   </dt>
-                  <dd className="font-mono">{error.stepIndex}</dd>
+                  <dd className="font-mono">{String(error.stepIndex)}</dd>
                 </div>
               )}
 
-              {error.stack && (
+              {error.stack !== undefined && error.stack !== null && (
                 <details className="mt-4">
                   <summary className="font-mono text-muted-foreground cursor-pointer hover:text-foreground">
                     Stack Trace (click to expand)
                   </summary>
                   <pre className="mt-2 bg-white p-4 rounded border border-red-200 overflow-x-auto text-xs">
-                    {error.stack}
+                    {String(error.stack)}
                   </pre>
                 </details>
               )}
@@ -315,10 +307,10 @@ export default async function ExecutionDetailPage({
             </p>
           ) : (
             <div className="space-y-6">
-              {steps.map((step: any, idx: number) => {
+              {(steps as Record<string, unknown>[]).map((step, idx) => {
                 const stepDuration = step.finishedAt
-                  ? new Date(step.finishedAt).getTime() -
-                    new Date(step.startedAt).getTime()
+                  ? new Date(step.finishedAt as Date).getTime() -
+                    new Date(step.startedAt as Date).getTime()
                   : null;
 
                 return (
@@ -342,14 +334,14 @@ export default async function ExecutionDetailPage({
                         </div>
                         <div>
                           <div className="font-mono text-sm font-medium">
-                            {step.nodeId}
+                            {String(step.nodeId)}
                           </div>
                           <div className="font-mono text-xs text-muted-foreground">
-                            {step.nodeType || "Unknown Type"}
+                            {String(step.nodeType || "Unknown Type")}
                           </div>
                         </div>
                       </div>
-                      <StepStatusBadge status={step.status} />
+                      <StepStatusBadge status={String(step.status)} />
                     </div>
 
                     {/* Step Metadata */}
@@ -359,7 +351,7 @@ export default async function ExecutionDetailPage({
                           Started
                         </dt>
                         <dd className="font-mono text-xs">
-                          {new Date(step.startedAt).toLocaleTimeString()}
+                          {new Date(step.startedAt as Date).toLocaleTimeString()}
                         </dd>
                       </div>
                       <div>
@@ -368,7 +360,7 @@ export default async function ExecutionDetailPage({
                         </dt>
                         <dd className="font-mono text-xs">
                           {step.finishedAt
-                            ? new Date(step.finishedAt).toLocaleTimeString()
+                            ? new Date(step.finishedAt as Date).toLocaleTimeString()
                             : "—"}
                         </dd>
                       </div>
@@ -387,7 +379,7 @@ export default async function ExecutionDetailPage({
                     </div>
 
                     {/* Step Output */}
-                    {step.output && (
+                    {step.output !== undefined && step.output !== null && (
                       <div className="mb-4">
                         <dt className="font-mono text-xs text-muted-foreground mb-2">
                           Output
@@ -399,13 +391,13 @@ export default async function ExecutionDetailPage({
                     )}
 
                     {/* Step Error */}
-                    {step.error && (
+                    {step.error !== undefined && step.error !== null && (
                       <div>
                         <dt className="font-mono text-xs text-muted-foreground mb-2">
                           Error
                         </dt>
                         <pre className="bg-red-100 border border-red-300 p-3 rounded text-xs text-red-600">
-                          {step.error}
+                          {typeof step.error === 'string' ? step.error : JSON.stringify(step.error, null, 2)}
                         </pre>
                       </div>
                     )}

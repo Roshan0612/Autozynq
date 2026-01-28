@@ -5,16 +5,17 @@ import { prisma } from "@/lib/prisma";
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions);
+  const { id } = await params;
+  const session = (await getServerSession(authOptions)) as { user?: { id?: string; email?: string } } | null;
   const userId = session?.user?.id as string | undefined;
 
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const connectionId = params.id;
+  const connectionId = id;
 
   // Verify connection belongs to user
   const connection = await prisma.connection.findFirst({

@@ -8,7 +8,7 @@ import { validateWorkflowDefinition, WorkflowValidationError } from "@/lib/workf
 const unauthorizedResponse = NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
 async function requireUserId() {
-  const session = await getServerSession(authOptions);
+  const session = (await getServerSession(authOptions)) as { user?: { id?: string; email?: string } } | null;
   const userId = session?.user?.id as string | undefined;
   return userId ?? null;
 }
@@ -76,3 +76,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
+

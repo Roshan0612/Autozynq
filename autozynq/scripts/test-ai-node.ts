@@ -27,6 +27,7 @@ async function main() {
   console.log("✅ API key found");
   console.log("\n📋 Test 1: Simple prompt without input\n");
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const ctx1: NodeContext = {
     input: null,
     config: {
@@ -41,10 +42,11 @@ async function main() {
     workflowId: "test-workflow-1",
     userId: "test-user",
     stepIndex: 1,
-  };
+  } as any;
 
   try {
-    const result1 = await generateTextAction.run(ctx1);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result1 = await generateTextAction.run(ctx1) as any;
     console.log("✅ Test 1 passed");
     console.log("Generated text:", result1.text);
     console.log("Model:", result1.model);
@@ -57,6 +59,7 @@ async function main() {
   console.log("\n" + "=".repeat(50));
   console.log("\n📋 Test 2: Prompt with input data\n");
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const ctx2: NodeContext = {
     input: {
       userName: "Alice",
@@ -75,10 +78,11 @@ async function main() {
     workflowId: "test-workflow-1",
     userId: "test-user",
     stepIndex: 2,
-  };
+  } as any;
 
   try {
-    const result2 = await generateTextAction.run(ctx2);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result2 = await generateTextAction.run(ctx2) as any;
     console.log("✅ Test 2 passed");
     console.log("Generated text:", result2.text);
     console.log("Model:", result2.model);
@@ -91,6 +95,7 @@ async function main() {
   console.log("\n" + "=".repeat(50));
   console.log("\n📋 Test 3: Error handling (missing prompt)\n");
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const ctx3: NodeContext = {
     input: null,
     config: {
@@ -105,7 +110,7 @@ async function main() {
     workflowId: "test-workflow-1",
     userId: "test-user",
     stepIndex: 3,
-  };
+  } as any;
 
   try {
     await generateTextAction.run(ctx3);

@@ -11,6 +11,8 @@ export const logDebugNode: AutomationNode = {
     level: z.enum(["info", "warn", "error"]).default("info"),
   }),
   outputSchema: z.any(),
+  outputFields: [],
+  requiresConnection: false,
   async run(ctx: NodeContext) {
     const cfg = ctx.config as { message?: string; level?: "info" | "warn" | "error" };
     const payload = {

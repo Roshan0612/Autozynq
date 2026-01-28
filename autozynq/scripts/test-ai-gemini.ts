@@ -27,6 +27,7 @@ console.log("🚀 Testing AI Generate Text node with Gemini...\n");
 // Test 1: Simple prompt
 async function test1() {
   console.log("━━━ Test 1: Simple Prompt ━━━");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const ctx: NodeContext = {
     workflowId: "test-wf",
     executionId: "test-exec",
@@ -42,10 +43,11 @@ async function test1() {
       },
     },
     input: null,
-  };
+  } as any;
 
   try {
-    const result = await generateTextAction.run(ctx);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await generateTextAction.run(ctx) as any;
     console.log("✅ Success!");
     console.log("Generated text:", result.text);
     console.log("Model:", result.model);
@@ -59,6 +61,7 @@ async function test1() {
 // Test 2: With input data and system prompt
 async function test2() {
   console.log("━━━ Test 2: With Input Data & System Prompt ━━━");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const ctx: NodeContext = {
     workflowId: "test-wf",
     executionId: "test-exec",
@@ -79,10 +82,11 @@ async function test2() {
       inquiry: "I haven't received my order yet. It's been 5 days.",
       orderNumber: "ORD-12345",
     },
-  };
+  } as any;
 
   try {
-    const result = await generateTextAction.run(ctx);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await generateTextAction.run(ctx) as any;
     console.log("✅ Success!");
     console.log("Generated text:", result.text);
     console.log("Model:", result.model);
@@ -96,6 +100,7 @@ async function test2() {
 // Test 3: Error handling (empty prompt)
 async function test3() {
   console.log("━━━ Test 3: Validation Error (Empty Prompt) ━━━");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const ctx: NodeContext = {
     workflowId: "test-wf",
     executionId: "test-exec",
@@ -109,10 +114,11 @@ async function test3() {
       },
     },
     input: null,
-  };
+  } as any;
 
   try {
-    await generateTextAction.run(ctx);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await generateTextAction.run(ctx) as any;
     console.log("❌ Should have thrown an error!");
   } catch (error: any) {
     console.log("✅ Correctly caught error:", error.message);
@@ -123,6 +129,7 @@ async function test3() {
 // Test 4: Test Gemini 1.5 Pro model
 async function test4() {
   console.log("━━━ Test 4: Gemini 2.5 Pro Model ━━━");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const ctx: NodeContext = {
     workflowId: "test-wf",
     executionId: "test-exec",
@@ -138,10 +145,11 @@ async function test4() {
       },
     },
     input: null,
-  };
+  } as any;
 
   try {
-    const result = await generateTextAction.run(ctx);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await generateTextAction.run(ctx) as any;
     console.log("✅ Success!");
     console.log("Generated text:", result.text);
     console.log("Model:", result.model);

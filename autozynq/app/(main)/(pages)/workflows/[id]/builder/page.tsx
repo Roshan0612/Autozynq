@@ -12,7 +12,7 @@ interface BuilderPageProps {
 
 export default async function BuilderPage({ params }: BuilderPageProps) {
   const { id } = await params;
-  const session = await getServerSession(authOptions);
+  const session = (await getServerSession(authOptions)) as { user?: { email?: string } } | null;
 
   if (!session?.user?.email) {
     redirect("/api/auth/signin");

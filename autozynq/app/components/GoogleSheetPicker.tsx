@@ -43,7 +43,7 @@ export function GoogleSheetPicker({
         const responseText = await res.text();
         console.log("[GoogleSheetPicker] Response body:", responseText);
         
-        let data: any = {};
+        let data: Record<string, unknown> = {};
         try {
           data = JSON.parse(responseText);
         } catch (e) {
@@ -52,7 +52,7 @@ export function GoogleSheetPicker({
 
         if (!res.ok) {
           const fallback = responseText ? "Unknown API error" : "No response body received";
-          const errorMsg = data.error || data.details || `HTTP ${res.status}: ${res.statusText}` || fallback;
+          const errorMsg = String(data.error || data.details || `HTTP ${res.status}: ${res.statusText}` || fallback);
           console.error("[GoogleSheetPicker] API error:", {
             status: res.status,
             statusText: res.statusText,
@@ -70,12 +70,13 @@ export function GoogleSheetPicker({
           throw new Error("Invalid sheets data returned from API");
         }
 
-        console.log("[GoogleSheetPicker] Successfully fetched", data.sheets.length, "sheets");
-        setSheets(data.sheets);
-      } catch (err: any) {
+        console.log("[GoogleSheetPicker] Successfully fetched", (data.sheets as Sheet[]).length, "sheets");
+        setSheets(data.sheets as Sheet[]);
+      } catch (err: unknown) {
+        const error = err as Record<string, unknown>;
         console.error("[GoogleSheetPicker] Error fetching sheets:", err);
-        console.error("[GoogleSheetPicker] Error stack:", err.stack);
-        setError(err.message || "Unknown error occurred");
+        console.error("[GoogleSheetPicker] Error stack:", (error as Record<string, unknown>).stack);
+        setError((error.message as string) || "Unknown error occurred");
         setSheets([]);
       } finally {
         setLoading(false);

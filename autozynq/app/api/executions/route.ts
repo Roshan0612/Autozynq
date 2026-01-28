@@ -12,7 +12,7 @@ import { prisma } from "@/lib/prisma";
 export async function GET(req: NextRequest) {
   try {
     // Authenticate user
-    const session = await getServerSession(authOptions);
+    const session = (await getServerSession(authOptions)) as { user?: { id?: string; email?: string } } | null;
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
     const workflowId = searchParams.get("workflowId");
 
     // Build where clause
-    const where: any = {
+    const where: Record<string, unknown> = {
       workflow: {
         userId: user.id,
       },
@@ -76,3 +76,4 @@ export async function GET(req: NextRequest) {
     );
   }
 }
+

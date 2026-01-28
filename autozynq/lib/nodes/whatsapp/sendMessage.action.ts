@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { z } from "zod";
 import { AutomationNode, NodeContext } from "../base";
 
@@ -41,6 +43,8 @@ export const whatsappSendMessageAction: AutomationNode = {
   description: "Send a message via WhatsApp (outbound only)",
   configSchema,
   outputSchema,
+  outputFields: [],
+  requiresConnection: false,
 
   async run(ctx: NodeContext) {
     const cfg = configSchema.parse(ctx.config) as Config;

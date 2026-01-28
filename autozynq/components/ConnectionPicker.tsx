@@ -36,8 +36,9 @@ export function ConnectionPicker({ provider, value, onChange }: ConnectionPicker
       if (!value && data.length > 0) {
         onChange(data[0].id);
       }
-    } catch (err: any) {
-      setError(err?.message || "Failed to load connections");
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to load connections";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

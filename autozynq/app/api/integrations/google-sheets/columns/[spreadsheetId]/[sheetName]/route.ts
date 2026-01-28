@@ -11,13 +11,13 @@ import { prisma } from "@/lib/prisma";
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { spreadsheetId: string; sheetName: string } }
+  { params }: { params: Promise<{ spreadsheetId: string; sheetName: string }> }
 ) {
   try {
     const { searchParams } = new URL(req.url);
     const connectionId = searchParams.get("connectionId");
     const headerRow = parseInt(searchParams.get("headerRow") || "1", 10);
-    const { spreadsheetId, sheetName } = params;
+    const { spreadsheetId, sheetName } = await params;
 
     if (!connectionId) {
       return NextResponse.json(
@@ -60,8 +60,8 @@ export async function GET(
       "https://www.googleapis.com/auth/spreadsheets",
       "https://www.googleapis.com/auth/drive.readonly",
     ];
-    const metadata = connection.metadata as any;
-    if (!connectionHasScopes(metadata?.scopes as string | undefined, requiredScopes)) {
+    const metadata = connection.metadata as Record<string, unknown>;
+    if (!connectionHasScopes((metadata?.scopes as string | undefined), requiredScopes)) {
       return NextResponse.json(
         {
           error: "Insufficient permissions",
@@ -98,12 +98,13 @@ export async function GET(
 
     console.log("[Google Sheets] Successfully fetched columns:", columns.length);
     return NextResponse.json({ columns });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Google Sheets] Error fetching columns:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
       {
         error: "Failed to fetch columns",
-        details: error.message,
+        details: errorMessage,
       },
       { status: 500 }
     );

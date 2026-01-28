@@ -27,7 +27,7 @@ export async function POST(
 ) {
   try {
     // Authenticate user
-    const session = await getServerSession(authOptions);
+    const session = (await getServerSession(authOptions)) as { user?: { id?: string; email?: string } } | null;
     if (!session?.user?.email) {
       return NextResponse.json(
         { error: "Unauthorized" },
@@ -128,7 +128,7 @@ export async function GET(
 ) {
   try {
     // Authenticate user
-    const session = await getServerSession(authOptions);
+    const session = (await getServerSession(authOptions)) as { user?: { id?: string; email?: string } } | null;
     if (!session?.user?.email) {
       return NextResponse.json(
         { error: "Unauthorized" },
@@ -167,7 +167,7 @@ export async function GET(
     const executions = await prisma.execution.findMany({
       where: {
         workflowId,
-        ...(status && { status: status as any }),
+        ...(status && { status: status as "PENDING" | "RUNNING" | "SUCCESS" | "FAILED" | "CANCEL_REQUESTED" | "ABORTED" }),
       },
       orderBy: { startedAt: "desc" },
       take: limit,

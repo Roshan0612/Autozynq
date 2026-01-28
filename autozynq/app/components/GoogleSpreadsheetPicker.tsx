@@ -41,7 +41,7 @@ export function GoogleSpreadsheetPicker({
         const responseText = await res.text();
         console.log("[GoogleSpreadsheetPicker] Response body:", responseText);
         
-        let data: any = {};
+        let data: Record<string, unknown> = {};
         try {
           data = JSON.parse(responseText);
         } catch (e) {
@@ -49,7 +49,7 @@ export function GoogleSpreadsheetPicker({
         }
 
         if (!res.ok) {
-          const errorMsg = data.error || data.details || `HTTP ${res.status}: ${res.statusText}`;
+          const errorMsg = String(data.error || data.details || `HTTP ${res.status}: ${res.statusText}`);
           console.error("[GoogleSpreadsheetPicker] API error:", { status: res.status, statusText: res.statusText, error: errorMsg, data, responseText });
           throw new Error(errorMsg);
         }
@@ -59,11 +59,12 @@ export function GoogleSpreadsheetPicker({
           throw new Error("Invalid spreadsheets data returned from API");
         }
 
-        console.log("[GoogleSpreadsheetPicker] Successfully fetched", data.spreadsheets.length, "spreadsheets");
-        setSpreadsheets(data.spreadsheets);
-      } catch (err: any) {
+        console.log("[GoogleSpreadsheetPicker] Successfully fetched", (data.spreadsheets as unknown[])?.length, "spreadsheets");
+        setSpreadsheets((data.spreadsheets as Spreadsheet[]) || []);
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : "Unknown error";
         console.error("[GoogleSpreadsheetPicker] Error fetching spreadsheets:", err);
-        setError(err.message);
+        setError(errorMessage);
         setSpreadsheets([]);
       } finally {
         setLoading(false);

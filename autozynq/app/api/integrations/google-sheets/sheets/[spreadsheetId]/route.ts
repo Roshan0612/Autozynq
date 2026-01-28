@@ -57,8 +57,8 @@ export async function GET(
       "https://www.googleapis.com/auth/spreadsheets",
       "https://www.googleapis.com/auth/drive.readonly",
     ];
-    const metadata = connection.metadata as any;
-    const scopeString = (metadata?.scopes || metadata?.scope) as string | undefined;
+    const metadata = connection.metadata as Record<string, unknown>;
+    const scopeString = ((metadata?.scopes || metadata?.scope) as string | undefined);
     if (!connectionHasScopes(scopeString, requiredScopes)) {
       return NextResponse.json(
         {
@@ -88,19 +88,20 @@ export async function GET(
         spreadsheetId,
         fields: "sheets(properties(sheetId,title,index,gridProperties))",
       });
-    } catch (sheetsError: any) {
+    } catch (sheetsError: unknown) {
+      const error = sheetsError as Record<string, unknown>;
       console.error("[Google Sheets] spreadsheets.get() failed:", {
-        status: sheetsError.status,
-        code: sheetsError.code,
-        message: sheetsError.message,
-        errors: sheetsError.errors,
+        status: (error as Record<string, unknown>).status,
+        code: (error as Record<string, unknown>).code,
+        message: (error as Record<string, unknown>).message,
+        errors: (error as Record<string, unknown>).errors,
       });
-      if (sheetsError.status === 403) {
+      if ((error as Record<string, unknown>).status === 403) {
         return NextResponse.json(
           {
             error: "Google API permission denied",
             details: "The Google Sheets API may not be enabled in your Google Cloud project, or the access token has expired. Try disconnecting and reconnecting your Google account.",
-            apiError: sheetsError.message,
+            apiError: (error as Record<string, unknown>).message,
           },
           { status: 403 }
         );
@@ -123,20 +124,21 @@ export async function GET(
 
     console.log("[Google Sheets] Successfully fetched sheets:", sheetsList.length);
     return NextResponse.json({ sheets: sheetsList });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorObj = error as Record<string, unknown>;
     console.error("[Google Sheets] Error fetching sheets:", {
-      message: error.message,
-      status: error.status,
-      code: error.code,
-      stack: error.stack,
+      message: (errorObj).message,
+      status: (errorObj).status,
+      code: (errorObj).code,
+      stack: (errorObj).stack,
     });
     return NextResponse.json(
       {
         error: "Failed to fetch sheets",
-        details: error.message || "Unknown error",
-        code: error.code,
+        details: (errorObj as Record<string, unknown>).message || "Unknown error",
+        code: (errorObj as Record<string, unknown>).code,
       },
-      { status: error.status === 403 ? 403 : 500 }
+      { status: (errorObj as Record<string, unknown>).status === 403 ? 403 : 500 }
     );
   }
 }

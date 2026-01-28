@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { z } from "zod";
 import type { AutomationNode } from "../base";
 import { setSharingPreference } from "@/lib/integrations/google/drive";

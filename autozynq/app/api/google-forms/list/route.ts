@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth/options";
-import { listForms, getFormSchema, formatFormAsOutputFields } from "@/lib/nodes/google_forms/service";
+import { listForms } from "@/lib/nodes/google_forms/service";
 
 /**
  * GET /api/google-forms/list?connectionId=<id>
@@ -10,7 +10,7 @@ import { listForms, getFormSchema, formatFormAsOutputFields } from "@/lib/nodes/
  * Requires: NextAuth session + valid Google connection ID
  */
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = (await getServerSession(authOptions)) as { user?: { id?: string; email?: string } } | null;
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -31,3 +31,4 @@ export async function GET(req: NextRequest) {
     );
   }
 }
+

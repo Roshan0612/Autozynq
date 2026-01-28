@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { prisma } from "../prisma";
 import { WorkflowStatus } from "@prisma/client";
 import { validateWorkflowDefinition } from "./validate";

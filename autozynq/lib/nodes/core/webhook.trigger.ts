@@ -10,6 +10,8 @@ export const webhookTriggerNode: AutomationNode = {
     description: z.string().optional(),
   }),
   outputSchema: z.any(),
+  outputFields: [],
+  requiresConnection: false,
   async run(ctx: NodeContext) {
     // Webhook payload arrives as ctx.input
     return ctx.input;

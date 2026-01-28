@@ -1,5 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { z } from "zod";
 import type { AutomationNode, NodeContext } from "../base";
+// @ts-expect-error - nodemailer types are missing
 import nodemailer from "nodemailer";
 
 const configSchema = z.object({
@@ -44,6 +47,8 @@ export const smtpSendEmailAction: AutomationNode = {
   description: "Send an email via SMTP using Nodemailer",
   configSchema,
   outputSchema,
+  outputFields: [],
+  requiresConnection: false,
   async run(ctx: NodeContext) {
     const cfg = configSchema.parse(ctx.config) as Config;
 

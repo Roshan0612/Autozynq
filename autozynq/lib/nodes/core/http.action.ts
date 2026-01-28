@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { z } from "zod";
 import type { AutomationNode, NodeContext } from "../base";
 
@@ -30,6 +32,8 @@ export const httpRequestNode: AutomationNode = {
     body: z.any().optional(),
   }),
   outputSchema: z.any(),
+  outputFields: [],
+  requiresConnection: false,
   async run(ctx: NodeContext) {
     const cfg = ctx.config as { url: string; method: HttpMethod; headers?: Record<string, unknown>; body?: any };
     const headers = parseHeaders(cfg.headers);

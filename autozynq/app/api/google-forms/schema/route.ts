@@ -10,7 +10,7 @@ import { getFormSchema } from "@/lib/nodes/google_forms/service";
  * Requires: NextAuth session + valid Google connection ID + Form ID
  */
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = (await getServerSession(authOptions)) as { user?: { id?: string; email?: string } } | null;
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -36,3 +36,4 @@ export async function GET(req: NextRequest) {
     );
   }
 }
+

@@ -27,6 +27,8 @@ export const googleFormsListResponsesAction: AutomationNode = {
   description: "List recent responses with optional since/limit.",
   configSchema,
   outputSchema,
+  outputFields: [],
+  requiresConnection: false,
   async run(ctx: NodeContext) {
     const cfg = configSchema.parse(ctx.config);
     const total = cfg.limit ?? 2;

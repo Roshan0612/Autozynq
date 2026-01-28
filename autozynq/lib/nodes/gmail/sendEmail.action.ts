@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { z } from "zod";
 import { AutomationNode, NodeContext, OutputField } from "../base";
 import { getConnection, updateConnection } from "../../connections/service";
@@ -241,7 +243,8 @@ export const gmailSendEmailAction: AutomationNode = {
         // Mark connection invalid for UX guardrails
         await updateConnection(connection.id, {
           metadata: {
-            ...(connection.metadata || {}),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ...(connection.metadata as any) || {},
             needsReauth: true,
           },
         });

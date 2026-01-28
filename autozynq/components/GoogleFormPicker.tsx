@@ -40,18 +40,18 @@ export function GoogleFormPicker({
 
   useEffect(() => {
     if (!connectionId) {
-      setForms([]);
-      setError("Connect Google account first");
       return;
     }
 
-    setLoading(true);
-    setError(null);
+    const loadForms = async () => {
+      setLoading(true);
+      setError(null);
 
-    fetch(`/api/integrations/google/forms?connectionId=${connectionId}`)
-      .then((res) => res.json().then((json) => ({ status: res.status, json })))
-      .then(({ status, json }) => {
-        if (status !== 200) {
+      try {
+        const res = await fetch(`/api/integrations/google/forms?connectionId=${connectionId}`);
+        const json = await res.json();
+        
+        if (res.status !== 200) {
           if (json?.error === "INSUFFICIENT_GOOGLE_SCOPES") {
             setError(
               "Insufficient Google permissions. Please reconnect Google with Drive + Forms access."
@@ -63,12 +63,16 @@ export function GoogleFormPicker({
         } else {
           setForms(json || []);
         }
-      })
-      .catch((err) => {
-        setError(err.message || "Failed to load forms");
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Failed to load forms";
+        setError(errorMessage);
         setForms([]);
-      })
-      .finally(() => setLoading(false));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadForms();
   }, [connectionId]);
 
   if (!connectionId) {
@@ -111,7 +115,7 @@ export function GoogleFormPicker({
             className="w-full rounded border px-2 py-2 text-sm"
           />
           <div className="mt-1 text-xs text-gray-500">
-            You can paste the full Google Form link; we'll extract the ID.
+            You can paste the full Google Form link; we&apos;ll extract the ID.
           </div>
         </div>
       </div>
@@ -136,7 +140,7 @@ export function GoogleFormPicker({
             className="w-full rounded border px-2 py-2 text-sm"
           />
           <div className="mt-1 text-xs text-gray-500">
-            You can paste the full Google Form link; we'll extract the ID.
+            You can paste the full Google Form link; we&apos;ll extract the ID.
           </div>
         </div>
       </div>

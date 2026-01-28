@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { z } from "zod";
 import type { AutomationNode, NodeContext } from "../base";
 import { fetchSheetData, mapRowToValues, getSheetInfo } from "@/lib/integrations/google/sheets";

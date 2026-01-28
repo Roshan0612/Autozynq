@@ -14,7 +14,7 @@ import {
 import { prisma } from "@/lib/prisma";
 
 async function getExecutions() {
-  const session = await getServerSession(authOptions);
+  const session = (await getServerSession(authOptions)) as { user?: { email?: string } } | null;
   if (!session?.user?.email) {
     redirect("/api/auth/signin");
   }
@@ -127,46 +127,48 @@ export default async function ExecutionsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {executions.map((execution: any) => (
-                <TableRow key={execution.id}>
+              {(executions as Record<string, unknown>[]).map((execution) => {
+                const workflow = execution.workflow as Record<string, unknown>;
+                return (
+                <TableRow key={String(execution.id)}>
                   <TableCell className="font-mono text-xs text-muted-foreground">
-                    {execution.id.slice(0, 8)}...
+                    {String(execution.id).slice(0, 8)}...
                   </TableCell>
                   <TableCell>
                     <Link
-                      href={`/workflows/${execution.workflow.id}`}
+                      href={`/workflows/${String(workflow.id)}`}
                       className="text-sm hover:underline"
                     >
-                      {execution.workflow.name}
+                      {String(workflow.name)}
                     </Link>
                   </TableCell>
                   <TableCell>
-                    <StatusBadge status={execution.status} />
+                    <StatusBadge status={String(execution.status)} />
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {new Date(execution.startedAt).toLocaleString()}
+                    {new Date(execution.startedAt as Date).toLocaleString()}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {execution.finishedAt
-                      ? new Date(execution.finishedAt).toLocaleString()
+                      ? new Date(execution.finishedAt as Date).toLocaleString()
                       : "—"}
                   </TableCell>
                   <TableCell className="text-sm font-mono">
                     <DurationDisplay
-                      startedAt={execution.startedAt}
-                      finishedAt={execution.finishedAt}
+                      startedAt={String(execution.startedAt)}
+                      finishedAt={execution.finishedAt ? String(execution.finishedAt) : null}
                     />
                   </TableCell>
                   <TableCell>
                     <Link
-                      href={`/executions/${execution.id}`}
+                      href={`/executions/${String(execution.id)}`}
                       className="text-sm text-blue-600 hover:underline"
                     >
                       View →
                     </Link>
                   </TableCell>
                 </TableRow>
-              ))}
+              )})}
             </TableBody>
           </Table>
         </div>

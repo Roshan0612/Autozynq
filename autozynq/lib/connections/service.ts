@@ -30,16 +30,18 @@ export interface UpdateConnectionInput {
 export async function createConnection(
   input: CreateConnectionInput
 ): Promise<Connection> {
-  return await prisma.connection.create({
-    data: {
-      userId: input.userId,
-      provider: input.provider,
-      accessToken: input.accessToken,
-      refreshToken: input.refreshToken,
-      expiresAt: input.expiresAt,
-      metadata: input.metadata || {},
-    },
-  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data: any = {
+    userId: input.userId,
+    provider: input.provider,
+    accessToken: input.accessToken,
+    refreshToken: input.refreshToken,
+    expiresAt: input.expiresAt,
+  };
+  if (input.metadata) {
+    data.metadata = input.metadata;
+  }
+  return await prisma.connection.create({ data });
 }
 
 /**
@@ -60,12 +62,10 @@ export async function getUserConnection(
   userId: string,
   provider: string
 ): Promise<Connection | null> {
-  return await prisma.connection.findUnique({
+  return await prisma.connection.findFirst({
     where: {
-      userId_provider: {
-        userId,
-        provider,
-      },
+      userId,
+      provider,
     },
   });
 }
@@ -89,17 +89,25 @@ export async function updateConnection(
   connectionId: string,
   input: UpdateConnectionInput
 ): Promise<Connection> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data: any = {
+    updatedAt: new Date(),
+  };
+  if (input.accessToken) {
+    data.accessToken = input.accessToken;
+  }
+  if (input.refreshToken !== undefined) {
+    data.refreshToken = input.refreshToken;
+  }
+  if (input.expiresAt !== undefined) {
+    data.expiresAt = input.expiresAt;
+  }
+  if (input.metadata !== undefined) {
+    data.metadata = input.metadata;
+  }
   return await prisma.connection.update({
     where: { id: connectionId },
-    data: {
-      ...(input.accessToken && { accessToken: input.accessToken }),
-      ...(input.refreshToken !== undefined && {
-        refreshToken: input.refreshToken,
-      }),
-      ...(input.expiresAt !== undefined && { expiresAt: input.expiresAt }),
-      ...(input.metadata !== undefined && { metadata: input.metadata }),
-      updatedAt: new Date(),
-    },
+    data,
   });
 }
 

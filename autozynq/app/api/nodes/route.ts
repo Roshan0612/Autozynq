@@ -22,12 +22,12 @@ export async function GET() {
   return NextResponse.json({ 
     nodes,
     total: nodes.length,
-    groupedByApp: nodes.reduce((acc: Record<string, any[]>, node) => {
+    groupedByApp: nodes.reduce((acc: Record<string, typeof nodes>, node) => {
       const app = node.app || "Core";
       if (!acc[app]) acc[app] = [];
       acc[app].push(node);
       return acc;
-    }, {})
+    }, {} as Record<string, typeof nodes>)
   });
 }
 

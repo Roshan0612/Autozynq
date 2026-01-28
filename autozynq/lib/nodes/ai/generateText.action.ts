@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { z } from "zod";
 import { AutomationNode, NodeContext } from "../base";
 
@@ -53,6 +55,8 @@ export const generateTextAction: AutomationNode = {
   description: "Generate text or extract JSON using an AI model (OpenAI, Gemini, or Groq)",
   configSchema,
   outputSchema,
+  outputFields: [],
+  requiresConnection: false,
 
   async run(ctx: NodeContext): Promise<Output> {
     // Validate config

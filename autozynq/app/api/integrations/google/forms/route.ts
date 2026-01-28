@@ -5,7 +5,7 @@ import { listUserForms } from "@/lib/integrations/google/forms";
 import { OAuthScopeError } from "@/lib/errors";
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = (await getServerSession(authOptions)) as { user?: { id?: string; email?: string } } | null;
   const userId = session?.user?.id as string | undefined;
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   try {
     const forms = await listUserForms(userId, connectionId);
     return NextResponse.json(forms);
-  } catch (err: any) {
+  } catch (err: unknown) {
     if (err instanceof OAuthScopeError) {
       return NextResponse.json(
         {
@@ -31,3 +31,4 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "FAILED_TO_LIST_FORMS" }, { status: 500 });
   }
 }
+

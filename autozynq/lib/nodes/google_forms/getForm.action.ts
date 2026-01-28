@@ -20,6 +20,8 @@ export const googleFormsGetFormAction: AutomationNode = {
   description: "Fetch form metadata and items.",
   configSchema,
   outputSchema,
+  outputFields: [],
+  requiresConnection: false,
   async run(ctx: NodeContext) {
     const cfg = configSchema.parse(ctx.config);
     // Mock: return a simple shape based on formId

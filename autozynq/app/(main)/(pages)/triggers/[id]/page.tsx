@@ -16,7 +16,7 @@ import { prisma } from "@/lib/prisma";
 import { CopyButton } from "@/app/components/CopyButton";
 
 async function getTriggerSubscription(id: string) {
-  const session = await getServerSession(authOptions);
+  const session = (await getServerSession(authOptions)) as { user?: { email?: string } } | null;
   if (!session?.user?.email) {
     redirect("/api/auth/signin");
   }
@@ -222,9 +222,9 @@ export default async function TriggerDetailPage({
               <code className="block font-mono text-xs bg-muted p-2 rounded mt-1">
                 curl -X POST {webhookUrl} \
                 <br />
-                &nbsp;&nbsp;-H "Content-Type: application/json" \
+                &nbsp;&nbsp;-H &quot;Content-Type: application/json&quot; \
                 <br />
-                &nbsp;&nbsp;-d {`'{"your": "payload"}'`}
+                &nbsp;&nbsp;-d {`'{\"your\": \"payload\"}'`}
               </code>
             </div>
           </div>
@@ -273,35 +273,35 @@ export default async function TriggerDetailPage({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {linkedExecutions.map((execution: any) => {
+                  {linkedExecutions.map((execution: Record<string, unknown>) => {
                     const duration =
                       execution.finishedAt && execution.startedAt
                         ? Math.round(
-                            (new Date(execution.finishedAt).getTime() -
-                              new Date(execution.startedAt).getTime()) /
+                            (new Date(execution.finishedAt as string | number).getTime() -
+                              new Date(execution.startedAt as string | number).getTime()) /
                               1000
                           )
                         : null;
 
                     return (
-                      <TableRow key={execution.id}>
+                      <TableRow key={String(execution.id)}>
                         <TableCell className="font-mono text-xs text-muted-foreground">
-                          {execution.id.substring(0, 8)}...
+                          {String(execution.id).substring(0, 8)}...
                         </TableCell>
                         <TableCell>
-                          <Badge variant={getStatusColor(execution.status)}>
-                            {execution.status}
+                          <Badge variant={getStatusColor(String(execution.status))}>
+                            {String(execution.status)}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
-                          {new Date(execution.startedAt).toLocaleString()}
+                          {new Date(execution.startedAt as Date).toLocaleString()}
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
                           {duration !== null ? `${duration}s` : "—"}
                         </TableCell>
                         <TableCell>
                           <Link
-                            href={`/executions/${execution.id}`}
+                            href={`/executions/${String(execution.id)}`}
                             className="text-sm text-blue-600 hover:underline"
                           >
                             View →

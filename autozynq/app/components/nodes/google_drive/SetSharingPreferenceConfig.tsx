@@ -8,33 +8,33 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ConnectionPicker } from "@/components/ConnectionPicker";
 
 interface SetSharingPreferenceConfigProps {
-  config: any;
-  onChange: (config: any) => void;
-  connectionId?: string;
+  config: unknown;
+  onChange: (config: unknown) => void;
 }
 
-export function SetSharingPreferenceConfig({ config, onChange, connectionId }: SetSharingPreferenceConfigProps) {
+export function SetSharingPreferenceConfig({ config, onChange }: SetSharingPreferenceConfigProps) {
   const [emailError, setEmailError] = useState<string | null>(null);
+  const cfg = config as Record<string, unknown>;
 
   const handleFileIdChange = (fileId: string) => {
     onChange({
-      ...config,
+      ...cfg,
       fileId,
     });
   };
 
   const handleRoleChange = (role: string) => {
     onChange({
-      ...config,
+      ...cfg,
       role,
     });
   };
 
   const handleScopeChange = (scope: string) => {
     onChange({
-      ...config,
+      ...cfg,
       scope,
-      emailAddress: scope !== "private" ? undefined : config.emailAddress,
+      emailAddress: scope !== "private" ? undefined : cfg.emailAddress,
     });
   };
 
@@ -46,19 +46,19 @@ export function SetSharingPreferenceConfig({ config, onChange, connectionId }: S
     }
 
     onChange({
-      ...config,
+      ...cfg,
       emailAddress: email,
     });
   };
 
   const handleAllowDiscoveryChange = (checked: boolean) => {
     onChange({
-      ...config,
+      ...cfg,
       allowDiscovery: checked,
     });
   };
 
-  const shouldShowEmail = config?.scope === "private";
+  const shouldShowEmail = cfg?.scope === "private";
 
   return (
     <div className="space-y-4">
@@ -67,8 +67,8 @@ export function SetSharingPreferenceConfig({ config, onChange, connectionId }: S
         <p className="text-xs text-gray-500 mb-2">Select your Google account</p>
         <ConnectionPicker
           provider="google"
-          value={config?.connectionId || ""}
-          onChange={(id) => onChange({ ...config, connectionId: id })}
+          value={String(cfg?.connectionId || "")}
+          onChange={(id) => onChange({ ...cfg, connectionId: id })}
         />
       </div>
 
@@ -83,7 +83,7 @@ export function SetSharingPreferenceConfig({ config, onChange, connectionId }: S
           id="file-id"
           type="text"
           placeholder="e.g., {{steps.node_abc123.folderId}}"
-          value={config?.fileId || ""}
+          value={String(cfg?.fileId || "")}
           onChange={(e) => handleFileIdChange(e.target.value)}
           className="mt-1 text-sm"
         />
@@ -92,7 +92,7 @@ export function SetSharingPreferenceConfig({ config, onChange, connectionId }: S
       <div>
         <Label className="text-sm font-medium">Role *</Label>
         <p className="text-xs text-gray-500 mb-2">What level of access to grant</p>
-        <Select value={config?.role || "viewer"} onValueChange={handleRoleChange}>
+        <Select value={String(cfg?.role || "viewer")} onValueChange={handleRoleChange}>
           <SelectTrigger>
             <SelectValue placeholder="Select role" />
           </SelectTrigger>
@@ -107,7 +107,7 @@ export function SetSharingPreferenceConfig({ config, onChange, connectionId }: S
       <div>
         <Label className="text-sm font-medium">Sharing Scope *</Label>
         <p className="text-xs text-gray-500 mb-2">Who can access this</p>
-        <Select value={config?.scope || "anyone"} onValueChange={handleScopeChange}>
+        <Select value={String(cfg?.scope || "anyone")} onValueChange={handleScopeChange}>
           <SelectTrigger>
             <SelectValue placeholder="Select sharing scope" />
           </SelectTrigger>
@@ -129,7 +129,7 @@ export function SetSharingPreferenceConfig({ config, onChange, connectionId }: S
             id="email"
             type="email"
             placeholder="user@example.com"
-            value={config?.emailAddress || ""}
+            value={String(cfg?.emailAddress || "")}
             onChange={(e) => handleEmailChange(e.target.value)}
             className={`mt-1 text-sm ${emailError ? "border-red-500" : ""}`}
           />
@@ -137,11 +137,11 @@ export function SetSharingPreferenceConfig({ config, onChange, connectionId }: S
         </div>
       )}
 
-      {config?.scope === "link" || config?.scope === "anyone" ? (
+      {cfg?.scope === "link" || cfg?.scope === "anyone" ? (
         <div className="flex items-center space-x-2">
           <Checkbox
             id="allow-discovery"
-            checked={config?.allowDiscovery !== false}
+            checked={cfg?.allowDiscovery !== false}
             onCheckedChange={handleAllowDiscoveryChange}
           />
           <Label htmlFor="allow-discovery" className="text-sm font-normal cursor-pointer">

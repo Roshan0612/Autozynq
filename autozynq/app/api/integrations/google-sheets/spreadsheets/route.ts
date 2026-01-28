@@ -59,12 +59,13 @@ export async function GET(req: NextRequest) {
     }));
 
     return NextResponse.json({ spreadsheets });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Google Sheets] Error fetching spreadsheets:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
       {
         error: "Failed to fetch spreadsheets",
-        details: error.message,
+        details: errorMessage,
       },
       { status: 500 }
     );

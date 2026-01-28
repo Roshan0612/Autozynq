@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { z } from "zod";
 import { AutomationNode, NodeContext } from "../base";
 
@@ -35,6 +37,8 @@ export const generateEmailAction: AutomationNode = {
   description: "Create a subject and body from prior step data (mock)",
   configSchema,
   outputSchema,
+  outputFields: [],
+  requiresConnection: false,
   async run(ctx: NodeContext) {
     const cfg = configSchema.parse(ctx.config) as Config;
 

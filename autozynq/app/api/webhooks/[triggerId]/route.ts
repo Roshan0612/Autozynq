@@ -53,13 +53,15 @@ export async function POST(
   { params }: { params: Promise<{ triggerId: string }> }
 ) {
   const startTime = Date.now();
+  let triggerId: string | undefined;
 
   try {
     // ============================================================================
     // STEP 1: Extract trigger ID (webhook path) from URL
     // ============================================================================
 
-    const { triggerId } = await params;
+    const paramsData = await params;
+    triggerId = paramsData.triggerId;
 
     if (!triggerId) {
       return NextResponse.json(
@@ -163,14 +165,13 @@ export async function POST(
 
     let executionId: string;
     let isDuplicate = false;
-    let isLocked = false;
     let lockedByExecution: string | undefined;
     
     try {
       // Extract eventId from payload if available (common pattern in webhooks)
       const eventId = 
         typeof webhookPayload === "object" && webhookPayload !== null && "id" in webhookPayload
-          ? String((webhookPayload as any).id)
+          ? String((webhookPayload as Record<string, unknown>).id)
           : undefined;
 
       const result = await runWorkflowIdempotent({
@@ -199,7 +200,6 @@ export async function POST(
     } catch (error) {
       // Handle specific lock errors
       if (error instanceof WorkflowLockedError) {
-        isLocked = true;
         lockedByExecution = error.existingExecutionId;
 
         console.warn(

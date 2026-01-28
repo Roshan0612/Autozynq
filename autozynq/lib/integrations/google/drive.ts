@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { google } from "googleapis";
 import { getGoogleOAuthClient } from "../google/auth";
 

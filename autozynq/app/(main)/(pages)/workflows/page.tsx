@@ -15,7 +15,7 @@ import { prisma } from "@/lib/prisma";
 import { CreateWorkflowForm } from "./CreateWorkflowForm";
 
 async function getWorkflows() {
-  const session = await getServerSession(authOptions);
+  const session = (await getServerSession(authOptions)) as { user?: { email?: string } } | null;
   if (!session?.user?.email) {
     redirect("/api/auth/signin");
   }
@@ -80,24 +80,24 @@ export default async function WorkflowsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {workflows.map((workflow: any) => (
-                <TableRow key={workflow.id}>
+              {workflows.map((workflow: Record<string, unknown>) => (
+                <TableRow key={String(workflow.id)}>
                   <TableCell className="font-mono text-xs text-muted-foreground">
-                    {workflow.id.slice(0, 8)}...
+                    {String(workflow.id).slice(0, 8)}...
                   </TableCell>
-                  <TableCell className="font-medium">{workflow.name}</TableCell>
+                  <TableCell className="font-medium">{String(workflow.name)}</TableCell>
                   <TableCell>
-                    <StatusBadge status={workflow.status} />
+                    <StatusBadge status={String(workflow.status)} />
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {new Date(workflow.createdAt).toLocaleString()}
+                    {new Date(String(workflow.createdAt)).toLocaleString()}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {new Date(workflow.updatedAt).toLocaleString()}
+                    {new Date(String(workflow.updatedAt)).toLocaleString()}
                   </TableCell>
                   <TableCell>
                     <Link
-                      href={`/workflows/${workflow.id}`}
+                      href={`/workflows/${String(workflow.id)}`}
                       className="text-sm text-blue-600 hover:underline"
                     >
                       View →

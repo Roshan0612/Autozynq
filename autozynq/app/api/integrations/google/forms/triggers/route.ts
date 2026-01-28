@@ -6,13 +6,15 @@ import { generateRandomId } from "@/lib/utils";
 import { getLatestResponseId } from "@/lib/integrations/google/forms";
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = (await getServerSession(authOptions)) as { user?: { id?: string; email?: string } } | null;
   const userId = session?.user?.id as string | undefined;
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = await req.json().catch(() => null) as any;
+  const body = await req.json().catch(() => null) as Record<string, unknown> | null;
   const { workflowId, formId, connectionId } = body || {};
-  if (!workflowId || !formId) {
+  const workflowIdStr = workflowId as string | undefined;
+  const formIdStr = formId as string | undefined;
+  if (!workflowIdStr || !formIdStr) {
     return NextResponse.json({ error: "Missing workflowId or formId" }, { status: 400 });
   }
 
@@ -25,14 +27,14 @@ export async function POST(req: NextRequest) {
   }
 
   const triggerId = generateRandomId();
-  const latestResponseId = await getLatestResponseId(connId!, formId);
+  const latestResponseId = await getLatestResponseId(connId!, formIdStr);
 
   const trigger = await prisma.googleFormsTrigger.create({
     data: {
       triggerId,
       userId,
-      workflowId,
-      formId,
+      workflowId: workflowIdStr,
+      formId: formIdStr,
       connectionId: connId!,
       lastResponseId: latestResponseId,
       lastCheckedAt: new Date(),
@@ -42,3 +44,4 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ id: trigger.id, triggerId: trigger.triggerId });
 }
+

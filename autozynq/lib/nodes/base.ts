@@ -13,7 +13,7 @@ export interface OutputField {
 export interface NodeContext {
   input: unknown; // Data from previous node (null for triggers)
   config: unknown; // Node-specific configuration from workflow JSON
-  auth: Record<string, any>; // OAuth tokens / API credentials (mock for now)
+  auth: Record<string, unknown>; // OAuth tokens / API credentials (mock for now)
   executionId: string; // Current execution ID for logging/debugging
   workflowId: string; // Workflow ID for reference
   userId?: string; // User ID who owns the execution

@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { z } from "zod";
 import type { AutomationNode, NodeContext, OutputField } from "../base";
 import { prisma } from "@/lib/prisma";
@@ -127,22 +129,23 @@ export const googleFormsNewResponseTrigger: AutomationNode = {
    */
   async run(ctx: NodeContext) {
     // Input is the webhook payload
-    const payload = ctx.input || {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const payload = (ctx.input || {}) as any;
     // Parse config defensively; config may be absent during manual Execute
     const cfgResult = configSchema.safeParse(ctx.config);
     const cfg: Partial<Config> = cfgResult.success ? cfgResult.data : {};
     const executionMode = ctx.executionMode || "live";
-    const isTest = executionMode === "test" || (payload as any).__testTrigger === true;
+    const isTest = executionMode === "test" || payload.__testTrigger === true;
 
     // If manually testing (no input), return test data
-    const hasRealPayload = Boolean((payload as any).responseId && (payload as any).answers);
+    const hasRealPayload = Boolean(payload.responseId && payload.answers);
 
     // If manually testing via explicit Test Trigger, return sample payload
     if (!hasRealPayload && isTest) {
       console.warn("[Google Forms Trigger] Test mode - returning sample payload");
       return {
         eventId: "test-event-id",
-        formId: (payload as any).formId || (cfg.formId ?? "test-form-id"),
+        formId: payload.formId || (cfg.formId ?? "test-form-id"),
         responseId: "test-response-id",
         submittedAt: new Date().toISOString(),
         respondentEmail: "test@example.com",

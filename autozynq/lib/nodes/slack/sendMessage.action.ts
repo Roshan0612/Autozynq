@@ -23,6 +23,8 @@ export const slackSendMessageAction: AutomationNode = {
   description: "Sends a message to a Slack channel",
   configSchema,
   outputSchema,
+  outputFields: [],
+  requiresConnection: false,
 
   async run(ctx: NodeContext) {
     const config = configSchema.parse(ctx.config);

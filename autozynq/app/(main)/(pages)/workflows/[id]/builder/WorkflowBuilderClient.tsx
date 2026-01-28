@@ -9,7 +9,6 @@ import ReactFlow, {
   Handle,
   Node as FlowNode,
   Position,
-  addEdge,
   applyEdgeChanges,
   applyNodeChanges,
   ReactFlowProvider,
@@ -18,6 +17,8 @@ import ReactFlow, {
   BaseEdge,
   getStraightPath,
   EdgeProps,
+  NodeChange,
+  EdgeChange,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { nanoid } from "nanoid";
@@ -35,14 +36,15 @@ import { WorkflowDefinition } from "@/lib/workflow/schema";
 import { WorkflowStatus } from "@prisma/client";
 
 // Custom node component - professional dark theme
-function CustomNode({ data }: { data: any }) {
+function CustomNode({ data }: { data: Record<string, unknown> }) {
   const categoryColors: Record<string, { bg: string; border: string; text: string }> = {
     trigger: { bg: "#1e3a8a", border: "#3b82f6", text: "#93c5fd" },
     action: { bg: "#1f2937", border: "#6b7280", text: "#d1d5db" },
     logic: { bg: "#4c1d95", border: "#a78bfa", text: "#e9d5ff" },
   };
 
-  const colors = categoryColors[data.category] || categoryColors.action;
+  const category = typeof data.category === 'string' ? data.category : 'action';
+  const colors = categoryColors[category] || categoryColors.action;
   const appIcon = data.appIcon as React.ReactNode | null | undefined;
 
   return (
@@ -96,8 +98,8 @@ function CustomNode({ data }: { data: any }) {
           {appIcon || null}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 600, marginBottom: 4 }}>{data.label || "Node"}</div>
-          <div style={{ fontSize: "11px", opacity: 0.8, wordBreak: "break-word" }}>{data.nodeType}</div>
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>{String(data.label || "Node")}</div>
+          <div style={{ fontSize: "11px", opacity: 0.8, wordBreak: "break-word" }}>{String(data.nodeType)}</div>
         </div>
       </div>
       <Handle
@@ -112,14 +114,12 @@ function CustomNode({ data }: { data: any }) {
 
 // Professional edge component
 function CustomEdge({
-  id,
   sourceX,
   sourceY,
   targetX,
   targetY,
   markerEnd,
   style,
-  data,
 }: EdgeProps) {
   const [edgePath] = getStraightPath({
     sourceX,
@@ -163,7 +163,7 @@ type BuilderNode = {
   id: string;
   nodeType: string;
   category: NodeCategory;
-  config: Record<string, any>;
+  config: Record<string, unknown>;
   position: { x: number; y: number };
 };
 
@@ -184,7 +184,7 @@ type NodeTemplate = {
   label: string;
   category: NodeCategory;
   nodeType: string;
-  defaultConfig: Record<string, any>;
+  defaultConfig: Record<string, unknown>;
 };
 
 const NODE_LIBRARY: NodeTemplate[] = [
@@ -368,12 +368,13 @@ function inferCategory(nodeType?: string): NodeCategory {
 function hydrateState(definition: WorkflowDefinition): WorkflowState {
   const positions = definition.ui?.positions || {};
   const nodes: BuilderNode[] = (definition.nodes || []).map((node, idx) => {
-    const nodeType = (node as any).type || (node as any).nodeType || "";
+    const nodeAsRecord = node as Record<string, unknown>;
+    const nodeType = String(nodeAsRecord.type || nodeAsRecord.nodeType || "");
     return {
       id: node.id,
       nodeType,
       category: inferCategory(nodeType),
-      config: (node.config as Record<string, any>) ?? {},
+      config: (node.config as Record<string, unknown>) ?? {},
       position:
         positions[node.id] || {
           x: 100 + (idx % 4) * 200,
@@ -481,12 +482,12 @@ function serializeDefinition(state: WorkflowState): WorkflowDefinition {
   };
 
   const normalizedNodes = state.nodes.map((node) => {
-    let config = { ...(node.config ?? {}) } as Record<string, any>;
+    let config = { ...(node.config ?? {}) } as Record<string, unknown>;
 
     if (node.nodeType === "google_forms.trigger.newResponse") {
       config = {
         connectionId: config.connectionId ?? "",
-        formId: normalizeFormId(config.formId),
+        formId: normalizeFormId(config.formId as string | undefined),
         includeAttachments: Boolean(config.includeAttachments),
         conditions: config.conditions,
       };
@@ -538,9 +539,10 @@ function NodeConfigForm({
   onChange,
 }: {
   node: BuilderNode;
-  onChange: (config: Record<string, any>) => void;
+  onChange: (config: Record<string, unknown>) => void;
 }) {
-  const template = templateByType[node.nodeType];
+  // Template lookup available for future use
+  // const template = templateByType[node.nodeType];
 
   switch (node.nodeType) {
     case "trigger.webhook.basic":
@@ -548,7 +550,7 @@ function NodeConfigForm({
         <div className="space-y-3">
           <p className="font-mono text-xs text-muted-foreground">Description</p>
           <input
-            value={node.config.description || ""}
+            value={String(node.config.description || "")}
             onChange={(e) => onChange({ ...node.config, description: e.target.value })}
             placeholder="Optional description"
             className="w-full rounded border px-2 py-1 text-sm"
@@ -562,15 +564,15 @@ function NodeConfigForm({
             <p className="font-mono text-xs text-muted-foreground">Google Connection</p>
             <ConnectionPicker
               provider="google"
-              value={node.config.connectionId}
+              value={String(node.config.connectionId || "")}
               onChange={(id) => onChange({ ...node.config, connectionId: id })}
             />
           </div>
           <div className="space-y-1">
             <p className="font-mono text-xs text-muted-foreground">Select Form</p>
             <GoogleFormPicker
-              connectionId={node.config.connectionId}
-              value={node.config.formId}
+              connectionId={String(node.config.connectionId || "")}
+              value={String(node.config.formId || "")}
               onChange={(formId: string) => onChange({ ...node.config, formId })}
             />
           </div>
@@ -593,7 +595,7 @@ function NodeConfigForm({
           <div className="space-y-1">
             <p className="font-mono text-xs text-muted-foreground">Instructions (optional)</p>
             <textarea
-              value={node.config.instructions || ""}
+              value={String(node.config.instructions || "")}
               onChange={(e) => onChange({ ...node.config, instructions: e.target.value })}
               placeholder="Write a short, friendly acknowledgement email."
               className="w-full rounded border px-2 py-2 text-sm font-mono"
@@ -609,7 +611,7 @@ function NodeConfigForm({
           <div className="space-y-1">
             <p className="font-mono text-xs text-muted-foreground">Connection ID</p>
             <input
-              value={node.config.connectionId || ""}
+              value={String(node.config.connectionId || "")}
               onChange={(e) => onChange({ ...node.config, connectionId: e.target.value })}
               placeholder="stub-conn"
               className="w-full rounded border px-2 py-1 text-sm"
@@ -618,7 +620,7 @@ function NodeConfigForm({
           <div className="space-y-1">
             <p className="font-mono text-xs text-muted-foreground">Form ID</p>
             <input
-              value={node.config.formId || ""}
+              value={String(node.config.formId || "")}
               onChange={(e) => onChange({ ...node.config, formId: e.target.value })}
               placeholder="form_123"
               className="w-full rounded border px-2 py-1 text-sm"
@@ -632,7 +634,7 @@ function NodeConfigForm({
           <div className="space-y-1">
             <p className="font-mono text-xs text-muted-foreground">Connection ID</p>
             <input
-              value={node.config.connectionId || ""}
+              value={String(node.config.connectionId || "")}
               onChange={(e) => onChange({ ...node.config, connectionId: e.target.value })}
               placeholder="stub-conn"
               className="w-full rounded border px-2 py-1 text-sm"
@@ -641,7 +643,7 @@ function NodeConfigForm({
           <div className="space-y-1">
             <p className="font-mono text-xs text-muted-foreground">Form ID</p>
             <input
-              value={node.config.formId || ""}
+              value={String(node.config.formId || "")}
               onChange={(e) => onChange({ ...node.config, formId: e.target.value })}
               placeholder="form_123"
               className="w-full rounded border px-2 py-1 text-sm"
@@ -650,7 +652,7 @@ function NodeConfigForm({
           <div className="space-y-1">
             <p className="font-mono text-xs text-muted-foreground">Response ID</p>
             <input
-              value={node.config.responseId || ""}
+              value={String(node.config.responseId || "")}
               onChange={(e) => onChange({ ...node.config, responseId: e.target.value })}
               placeholder="resp_1"
               className="w-full rounded border px-2 py-1 text-sm"
@@ -664,7 +666,7 @@ function NodeConfigForm({
           <div className="space-y-1">
             <p className="font-mono text-xs text-muted-foreground">Connection ID</p>
             <input
-              value={node.config.connectionId || ""}
+              value={String(node.config.connectionId || "")}
               onChange={(e) => onChange({ ...node.config, connectionId: e.target.value })}
               placeholder="stub-conn"
               className="w-full rounded border px-2 py-1 text-sm"
@@ -673,7 +675,7 @@ function NodeConfigForm({
           <div className="space-y-1">
             <p className="font-mono text-xs text-muted-foreground">Form ID</p>
             <input
-              value={node.config.formId || ""}
+              value={String(node.config.formId || "")}
               onChange={(e) => onChange({ ...node.config, formId: e.target.value })}
               placeholder="form_123"
               className="w-full rounded border px-2 py-1 text-sm"
@@ -683,7 +685,7 @@ function NodeConfigForm({
             <p className="font-mono text-xs text-muted-foreground">Limit (optional)</p>
             <input
               type="number"
-              value={node.config.limit ?? ""}
+              value={String(node.config.limit ?? "")}
               onChange={(e) => onChange({ ...node.config, limit: e.target.value ? parseInt(e.target.value) : undefined })}
               placeholder="2"
               className="w-full rounded border px-2 py-1 text-sm"
@@ -692,7 +694,7 @@ function NodeConfigForm({
           <div className="space-y-1">
             <p className="font-mono text-xs text-muted-foreground">Since (ISO, optional)</p>
             <input
-              value={node.config.since || ""}
+              value={String(node.config.since || "")}
               onChange={(e) => onChange({ ...node.config, since: e.target.value || undefined })}
               placeholder="2024-01-01T00:00:00.000Z"
               className="w-full rounded border px-2 py-1 text-sm"
@@ -725,7 +727,7 @@ function NodeConfigForm({
           <div className="space-y-1">
             <p className="font-mono text-xs text-muted-foreground">URL</p>
             <input
-              value={node.config.url || ""}
+              value={String(node.config.url || "")}
               onChange={(e) => onChange({ ...node.config, url: e.target.value })}
               placeholder="https://api.example.com"
               className="w-full rounded border px-2 py-1 text-sm"
@@ -735,7 +737,7 @@ function NodeConfigForm({
             <p className="font-mono text-xs text-muted-foreground">Method</p>
             <select
               className="w-full rounded border px-2 py-1 text-sm"
-              value={node.config.method || "GET"}
+              value={String(node.config.method || "GET")}
               onChange={(e) => onChange({ ...node.config, method: e.target.value })}
             >
               {(["GET", "POST", "PUT", "PATCH", "DELETE"] as const).map((m) => (
@@ -794,7 +796,7 @@ function NodeConfigForm({
           <div className="space-y-1">
             <p className="font-mono text-xs text-muted-foreground">Message</p>
             <input
-              value={node.config.message || ""}
+              value={String(node.config.message || "")}
               onChange={(e) => onChange({ ...node.config, message: e.target.value })}
               placeholder="Debug message"
               className="w-full rounded border px-2 py-1 text-sm"
@@ -804,7 +806,7 @@ function NodeConfigForm({
             <p className="font-mono text-xs text-muted-foreground">Level</p>
             <select
               className="w-full rounded border px-2 py-1 text-sm"
-              value={node.config.level || "info"}
+              value={String(node.config.level || "info")}
               onChange={(e) => onChange({ ...node.config, level: e.target.value })}
             >
               <option value="info">info</option>
@@ -821,14 +823,14 @@ function NodeConfigForm({
             <p className="font-mono text-xs text-muted-foreground">Gmail Connection</p>
             <ConnectionPicker
               provider="google"
-              value={node.config.connectionId}
+              value={String(node.config.connectionId || "")}
               onChange={(id) => onChange({ ...node.config, connectionId: id })}
             />
           </div>
           <div className="space-y-1">
             <p className="font-mono text-xs text-muted-foreground">To</p>
             <input
-              value={node.config.to || ""}
+              value={String(node.config.to || "")}
               onChange={(e) => onChange({ ...node.config, to: e.target.value })}
               placeholder="{{steps.trigger1.email}} or someone@example.com"
               className="w-full rounded border px-2 py-1 text-sm"
@@ -838,7 +840,7 @@ function NodeConfigForm({
           <div className="space-y-1">
             <p className="font-mono text-xs text-muted-foreground">CC (optional)</p>
             <input
-              value={node.config.cc || ""}
+              value={String(node.config.cc || "")}
               onChange={(e) => onChange({ ...node.config, cc: e.target.value })}
               placeholder="{{steps.trigger1.cc}} or team@example.com"
               className="w-full rounded border px-2 py-1 text-sm"
@@ -847,7 +849,7 @@ function NodeConfigForm({
           <div className="space-y-1">
             <p className="font-mono text-xs text-muted-foreground">BCC (optional)</p>
             <input
-              value={node.config.bcc || ""}
+              value={String(node.config.bcc || "")}
               onChange={(e) => onChange({ ...node.config, bcc: e.target.value })}
               placeholder="archive@example.com"
               className="w-full rounded border px-2 py-1 text-sm"
@@ -856,7 +858,7 @@ function NodeConfigForm({
           <div className="space-y-1">
             <p className="font-mono text-xs text-muted-foreground">Subject</p>
             <input
-              value={node.config.subject || ""}
+              value={String(node.config.subject || "")}
               onChange={(e) => onChange({ ...node.config, subject: e.target.value })}
               placeholder="Thank you {{steps.trigger1.name}}!"
               className="w-full rounded border px-2 py-1 text-sm"
@@ -865,7 +867,7 @@ function NodeConfigForm({
           <div className="space-y-1">
             <p className="font-mono text-xs text-muted-foreground">Body HTML</p>
             <textarea
-              value={node.config.bodyHtml || ""}
+              value={String(node.config.bodyHtml || "")}
               onChange={(e) => onChange({ ...node.config, bodyHtml: e.target.value })}
               placeholder="<p>Hi {{steps.trigger1.name}},</p><p>{{steps.ai1.body}}</p>"
               className="w-full rounded border px-2 py-2 text-sm font-mono"
@@ -876,7 +878,7 @@ function NodeConfigForm({
         </div>
       );
     case "ai.action.generateText":
-      const provider = node.config.provider || "groq";
+      const provider = String(node.config.provider || "groq");
       const groqModels = [
         { value: "llama-3.3-70b-versatile", label: "Llama 3.3 70B (Fastest)" },
         { value: "llama-3.1-70b-versatile", label: "Llama 3.1 70B" },
@@ -920,7 +922,7 @@ function NodeConfigForm({
             <p className="font-mono text-xs text-muted-foreground">Model</p>
             <select
               className="w-full rounded border px-2 py-1 text-sm"
-              value={node.config.model || defaultModel}
+              value={String(node.config.model || defaultModel)}
               onChange={(e) => onChange({ ...node.config, model: e.target.value })}
             >
               {currentModels.map((m) => (
@@ -933,7 +935,7 @@ function NodeConfigForm({
           <div className="space-y-1">
             <p className="font-mono text-xs text-muted-foreground">System Prompt (optional)</p>
             <textarea
-              value={node.config.systemPrompt || ""}
+              value={String(node.config.systemPrompt || "")}
               onChange={(e) => onChange({ ...node.config, systemPrompt: e.target.value })}
               placeholder="You are a helpful assistant..."
               className="w-full rounded border px-2 py-2 text-sm font-mono"
@@ -943,7 +945,7 @@ function NodeConfigForm({
           <div className="space-y-1">
             <p className="font-mono text-xs text-muted-foreground">Prompt *</p>
             <textarea
-              value={node.config.userPrompt || ""}
+              value={String(node.config.userPrompt || "")}
               onChange={(e) => onChange({ ...node.config, userPrompt: e.target.value })}
               placeholder="Generate a creative blog post title about..."
               className="w-full rounded border px-2 py-2 text-sm font-mono"
@@ -951,13 +953,13 @@ function NodeConfigForm({
             />
           </div>
           <div className="space-y-1">
-            <p className="font-mono text-xs text-muted-foreground">Temperature ({node.config.temperature ?? 0.7})</p>
+            <p className="font-mono text-xs text-muted-foreground">Temperature ({String(node.config.temperature ?? 0.7)})</p>
             <input
               type="range"
               min="0"
               max="2"
               step="0.1"
-              value={node.config.temperature ?? 0.7}
+              value={Number(node.config.temperature ?? 0.7)}
               onChange={(e) => onChange({ ...node.config, temperature: parseFloat(e.target.value) })}
               className="w-full"
             />
@@ -969,7 +971,7 @@ function NodeConfigForm({
               type="number"
               min="1"
               max="8000"
-              value={node.config.maxTokens ?? 500}
+              value={Number(node.config.maxTokens ?? 500)}
               onChange={(e) => onChange({ ...node.config, maxTokens: parseInt(e.target.value) || 500 })}
               className="w-full rounded border px-2 py-1 text-sm"
             />
@@ -983,7 +985,7 @@ function NodeConfigForm({
             <p className="font-mono text-xs text-muted-foreground">Operator</p>
             <select
               className="w-full rounded border px-2 py-1 text-sm"
-              value={node.config.operator || "equals"}
+              value={String(node.config.operator || "equals")}
               onChange={(e) => onChange({ ...node.config, operator: e.target.value })}
             >
               <option value="equals">equals</option>
@@ -1022,15 +1024,15 @@ function NodeConfigForm({
             <p className="font-mono text-xs text-muted-foreground">Google Account</p>
             <ConnectionPicker
               provider="google"
-              value={node.config.connectionId}
+              value={String(node.config.connectionId || "")}
               onChange={(id) => onChange({ ...node.config, connectionId: id })}
             />
           </div>
           <div className="space-y-1">
             <p className="font-mono text-xs text-muted-foreground">Spreadsheet</p>
             <GoogleSpreadsheetPicker
-              connectionId={node.config.connectionId}
-              value={node.config.spreadsheetId}
+              connectionId={String(node.config.connectionId || "")}
+              value={String(node.config.spreadsheetId || "")}
               onChange={(spreadsheetId: string, spreadsheetName: string) =>
                 onChange({ ...node.config, spreadsheetId, spreadsheetName })
               }
@@ -1039,18 +1041,18 @@ function NodeConfigForm({
           <div className="space-y-1">
             <p className="font-mono text-xs text-muted-foreground">Sheet</p>
             <GoogleSheetPicker
-              connectionId={node.config.connectionId}
-              spreadsheetId={node.config.spreadsheetId}
-              value={node.config.sheetName}
+              connectionId={String(node.config.connectionId || "")}
+              spreadsheetId={String(node.config.spreadsheetId || "")}
+              value={String(node.config.sheetName || "")}
               onChange={(sheetName: string) => onChange({ ...node.config, sheetName })}
             />
           </div>
-          {node.config.connectionId && node.config.spreadsheetId && node.config.sheetName && (
+          {String(node.config.connectionId) && String(node.config.spreadsheetId) && String(node.config.sheetName) && (
             <GoogleSheetColumnMapper
-              connectionId={node.config.connectionId}
-              spreadsheetId={node.config.spreadsheetId}
-              sheetName={node.config.sheetName}
-              values={node.config.columnValues || {}}
+              connectionId={String(node.config.connectionId)}
+              spreadsheetId={String(node.config.spreadsheetId)}
+              sheetName={String(node.config.sheetName)}
+              values={(node.config.columnValues as Record<string, string>) || {}}
               onChange={(columnValues: Record<string, string>) => onChange({ ...node.config, columnValues })}
             />
           )}
@@ -1063,15 +1065,15 @@ function NodeConfigForm({
             <p className="font-mono text-xs text-muted-foreground">Google Account</p>
             <ConnectionPicker
               provider="google"
-              value={node.config.connectionId}
+              value={String(node.config.connectionId || "")}
               onChange={(id) => onChange({ ...node.config, connectionId: id })}
             />
           </div>
           <div className="space-y-1">
             <p className="font-mono text-xs text-muted-foreground">Spreadsheet</p>
             <GoogleSpreadsheetPicker
-              connectionId={node.config.connectionId}
-              value={node.config.spreadsheetId}
+              connectionId={String(node.config.connectionId || "")}
+              value={String(node.config.spreadsheetId || "")}
               onChange={(spreadsheetId: string, spreadsheetName: string) =>
                 onChange({ ...node.config, spreadsheetId, spreadsheetName })
               }
@@ -1080,9 +1082,9 @@ function NodeConfigForm({
           <div className="space-y-1">
             <p className="font-mono text-xs text-muted-foreground">Sheet</p>
             <GoogleSheetPicker
-              connectionId={node.config.connectionId}
-              spreadsheetId={node.config.spreadsheetId}
-              value={node.config.sheetName}
+              connectionId={String(node.config.connectionId || "")}
+              spreadsheetId={String(node.config.spreadsheetId || "")}
+              value={String(node.config.sheetName || "")}
               onChange={(sheetName: string) => onChange({ ...node.config, sheetName })}
             />
           </div>
@@ -1090,19 +1092,19 @@ function NodeConfigForm({
             <p className="font-mono text-xs text-muted-foreground">Row Number</p>
             <input
               type="number"
-              value={node.config.rowNumber || 2}
+              value={Number(node.config.rowNumber || 2)}
               onChange={(e) => onChange({ ...node.config, rowNumber: parseInt(e.target.value) || 2 })}
               placeholder="2"
               className="w-full rounded border px-2 py-1 text-sm"
             />
             <p className="text-xs text-muted-foreground">Can use {"{{steps.trigger1.rowNumber}}"}</p>
           </div>
-          {node.config.connectionId && node.config.spreadsheetId && node.config.sheetName && (
+          {String(node.config.connectionId) && String(node.config.spreadsheetId) && String(node.config.sheetName) && (
             <GoogleSheetColumnMapper
-              connectionId={node.config.connectionId}
-              spreadsheetId={node.config.spreadsheetId}
-              sheetName={node.config.sheetName}
-              values={node.config.values || {}}
+              connectionId={String(node.config.connectionId)}
+              spreadsheetId={String(node.config.spreadsheetId)}
+              sheetName={String(node.config.sheetName)}
+              values={(node.config.values as Record<string, string>) || {}}
               onChange={(values: Record<string, string>) => onChange({ ...node.config, values })}
             />
           )}
@@ -1115,15 +1117,15 @@ function NodeConfigForm({
             <p className="font-mono text-xs text-muted-foreground">Google Account</p>
             <ConnectionPicker
               provider="google"
-              value={node.config.connectionId}
+              value={String(node.config.connectionId || "")}
               onChange={(id) => onChange({ ...node.config, connectionId: id })}
             />
           </div>
           <div className="space-y-1">
             <p className="font-mono text-xs text-muted-foreground">Spreadsheet</p>
             <GoogleSpreadsheetPicker
-              connectionId={node.config.connectionId}
-              value={node.config.spreadsheetId}
+              connectionId={String(node.config.connectionId || "")}
+              value={String(node.config.spreadsheetId || "")}
               onChange={(spreadsheetId: string, spreadsheetName: string) =>
                 onChange({ ...node.config, spreadsheetId, spreadsheetName })
               }
@@ -1132,9 +1134,9 @@ function NodeConfigForm({
           <div className="space-y-1">
             <p className="font-mono text-xs text-muted-foreground">Sheet</p>
             <GoogleSheetPicker
-              connectionId={node.config.connectionId}
-              spreadsheetId={node.config.spreadsheetId}
-              value={node.config.sheetName}
+              connectionId={String(node.config.connectionId || "")}
+              spreadsheetId={String(node.config.spreadsheetId || "")}
+              value={String(node.config.sheetName || "")}
               onChange={(sheetName: string) => onChange({ ...node.config, sheetName })}
             />
           </div>
@@ -1142,12 +1144,12 @@ function NodeConfigForm({
             <p className="font-mono text-xs text-muted-foreground">Row Number</p>
             <input
               type="number"
-              value={node.config.rowNumber || 2}
+              value={Number(node.config.rowNumber || 2)}
               onChange={(e) => onChange({ ...node.config, rowNumber: parseInt(e.target.value) || 2 })}
               placeholder="2"
               className="w-full rounded border px-2 py-1 text-sm"
             />
-            <p className="text-xs text-muted-foreground">Can use {"{{steps.trigger1.rowNumber}}"}</p>
+            <p className="text-xs text-muted-foreground">Can use {`{{steps.trigger1.rowNumber}}`}</p>
           </div>
         </div>
       );
@@ -1158,15 +1160,15 @@ function NodeConfigForm({
             <p className="font-mono text-xs text-muted-foreground">Google Account</p>
             <ConnectionPicker
               provider="google"
-              value={node.config.connectionId}
+              value={String(node.config.connectionId || "")}
               onChange={(id) => onChange({ ...node.config, connectionId: id })}
             />
           </div>
           <div className="space-y-1">
             <p className="font-mono text-xs text-muted-foreground">Spreadsheet</p>
             <GoogleSpreadsheetPicker
-              connectionId={node.config.connectionId}
-              value={node.config.spreadsheetId}
+              connectionId={String(node.config.connectionId || "")}
+              value={String(node.config.spreadsheetId || "")}
               onChange={(spreadsheetId: string, spreadsheetName: string) =>
                 onChange({ ...node.config, spreadsheetId, spreadsheetName })
               }
@@ -1175,16 +1177,16 @@ function NodeConfigForm({
           <div className="space-y-1">
             <p className="font-mono text-xs text-muted-foreground">Sheet</p>
             <GoogleSheetPicker
-              connectionId={node.config.connectionId}
-              spreadsheetId={node.config.spreadsheetId}
-              value={node.config.sheetName}
+              connectionId={String(node.config.connectionId || "")}
+              spreadsheetId={String(node.config.spreadsheetId || "")}
+              value={String(node.config.sheetName || "")}
               onChange={(sheetName: string) => onChange({ ...node.config, sheetName })}
             />
           </div>
           <div className="space-y-1">
             <p className="font-mono text-xs text-muted-foreground">Search Column</p>
             <input
-              value={node.config.searchColumn || "ALL"}
+              value={String(node.config.searchColumn || "ALL")}
               onChange={(e) => onChange({ ...node.config, searchColumn: e.target.value })}
               placeholder="ALL or column name"
               className="w-full rounded border px-2 py-1 text-sm"
@@ -1193,9 +1195,9 @@ function NodeConfigForm({
           <div className="space-y-1">
             <p className="font-mono text-xs text-muted-foreground">Search Value</p>
             <input
-              value={node.config.searchValue || ""}
+              value={String(node.config.searchValue || "")}
               onChange={(e) => onChange({ ...node.config, searchValue: e.target.value })}
-              placeholder="{{`{{steps.trigger1.email}}`}}"
+              placeholder={`{{steps.trigger1.email}}`}
               className="w-full rounded border px-2 py-1 text-sm"
             />
           </div>
@@ -1203,7 +1205,7 @@ function NodeConfigForm({
             <p className="font-mono text-xs text-muted-foreground">Limit (optional)</p>
             <input
               type="number"
-              value={node.config.limit || ""}
+              value={String(node.config.limit || "")}
               onChange={(e) => onChange({ ...node.config, limit: e.target.value ? parseInt(e.target.value) : undefined })}
               placeholder="10"
               className="w-full rounded border px-2 py-1 text-sm"
@@ -1218,15 +1220,15 @@ function NodeConfigForm({
             <p className="font-mono text-xs text-muted-foreground">Google Account</p>
             <ConnectionPicker
               provider="google"
-              value={node.config.connectionId}
+              value={String(node.config.connectionId || "")}
               onChange={(id) => onChange({ ...node.config, connectionId: id })}
             />
           </div>
           <div className="space-y-1">
             <p className="font-mono text-xs text-muted-foreground">Spreadsheet</p>
             <GoogleSpreadsheetPicker
-              connectionId={node.config.connectionId}
-              value={node.config.spreadsheetId}
+              connectionId={String(node.config.connectionId || "")}
+              value={String(node.config.spreadsheetId || "")}
               onChange={(spreadsheetId: string, spreadsheetName: string) =>
                 onChange({ ...node.config, spreadsheetId, spreadsheetName })
               }
@@ -1235,9 +1237,9 @@ function NodeConfigForm({
           <div className="space-y-1">
             <p className="font-mono text-xs text-muted-foreground">Sheet</p>
             <GoogleSheetPicker
-              connectionId={node.config.connectionId}
-              spreadsheetId={node.config.spreadsheetId}
-              value={node.config.sheetName}
+              connectionId={String(node.config.connectionId || "")}
+              spreadsheetId={String(node.config.spreadsheetId || "")}
+              value={String(node.config.sheetName || "")}
               onChange={(sheetName: string) => onChange({ ...node.config, sheetName })}
             />
           </div>
@@ -1245,7 +1247,7 @@ function NodeConfigForm({
             <p className="font-mono text-xs text-muted-foreground">Start From Row</p>
             <input
               type="number"
-              value={node.config.fromRow || 2}
+              value={Number(node.config.fromRow || 2)}
               onChange={(e) => onChange({ ...node.config, fromRow: parseInt(e.target.value) || 2 })}
               placeholder="2"
               className="w-full rounded border px-2 py-1 text-sm"
@@ -1255,7 +1257,7 @@ function NodeConfigForm({
           <div className="space-y-1">
             <p className="font-mono text-xs text-muted-foreground">Start Mode</p>
             <select
-              value={node.config.startMode || "from_now"}
+              value={String(node.config.startMode || "from_now")}
               onChange={(e) => onChange({ ...node.config, startMode: e.target.value })}
               className="w-full rounded border px-2 py-1 text-sm"
             >
@@ -1269,16 +1271,15 @@ function NodeConfigForm({
       return (
         <CreateFolderConfig
           config={node.config}
-          onChange={onChange}
-          connectionId={node.config.connectionId}
+          onChange={(config) => onChange(config as Record<string, unknown>)}
+          connectionId={String(node.config.connectionId || "")}
         />
       );
     case "google_drive.action.setSharingPreference":
       return (
         <SetSharingPreferenceConfig
           config={node.config}
-          onChange={onChange}
-          connectionId={node.config.connectionId}
+          onChange={(config) => onChange(config as Record<string, unknown>)}
         />
       );
     default:
@@ -1359,9 +1360,9 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
   
   const flowEdges = useMemo(() => toReactFlowEdges(state.edges), [state.edges]);
 
-  const onNodesChange = useCallback((changes: any) => {
+  const onNodesChange = useCallback((changes: unknown) => {
     setState((prev) => {
-      const updatedFlow = applyNodeChanges(changes, toReactFlowNodes(prev.nodes, prev.edges));
+      const updatedFlow = applyNodeChanges(changes as NodeChange[], toReactFlowNodes(prev.nodes, prev.edges));
       const updatedNodes: BuilderNode[] = prev.nodes.map((node) => {
         const match = updatedFlow.find((n) => n.id === node.id);
         return match ? { ...node, position: match.position } : node;
@@ -1370,15 +1371,19 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
     });
   }, []);
 
-  const onEdgesChange = useCallback((changes: any) => {
+  const onEdgesChange = useCallback((changes: unknown) => {
     setState((prev) => {
-      const updatedFlow = applyEdgeChanges(changes, toReactFlowEdges(prev.edges));
-      const updatedEdges: BuilderEdge[] = updatedFlow.map((edge) => ({
-        id: edge.id,
-        from: edge.source,
-        to: edge.target,
-        condition: (edge.data as any)?.condition || edge.label || undefined,
-      }));
+      const updatedFlow = applyEdgeChanges(changes as EdgeChange[], toReactFlowEdges(prev.edges));
+      const updatedEdges: BuilderEdge[] = updatedFlow.map((edge) => {
+        const conditionValue = (edge.data as Record<string, unknown>)?.condition;
+        const condition = typeof conditionValue === "string" ? conditionValue : (edge.label as string | undefined);
+        return {
+          id: edge.id,
+          from: edge.source,
+          to: edge.target,
+          condition: condition || undefined,
+        };
+      });
       return { ...prev, edges: updatedEdges };
     });
   }, []);
@@ -1399,7 +1404,7 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
     });
   }, []);
 
-  const updateNodeConfig = useCallback((nodeId: string, config: Record<string, any>) => {
+  const updateNodeConfig = useCallback((nodeId: string, config: Record<string, unknown>) => {
     setState((prev) => ({
       ...prev,
       nodes: prev.nodes.map((n) => (n.id === nodeId ? { ...n, config } : n)),

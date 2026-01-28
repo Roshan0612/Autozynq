@@ -90,8 +90,10 @@ async function main() {
 
   console.log("✅ Workflow created:", workflow.id);
   console.log("   Name:", workflow.name);
-  console.log("   Nodes:", workflow.definition.nodes.length);
-  console.log("   Edges:", workflow.definition.edges.length);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const def = workflow.definition as any;
+  console.log("   Nodes:", def.nodes.length);
+  console.log("   Edges:", def.edges.length);
 
   // Activate workflow
   console.log("\n🔄 Activating workflow...");
@@ -127,6 +129,7 @@ async function main() {
     console.log("✅ Execution started:", executionId);
 
     // Fetch execution details
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const execution = await prisma.execution.findUnique({
       where: { id: executionId },
       include: {
@@ -135,7 +138,7 @@ async function main() {
           orderBy: { index: "asc" },
         },
       },
-    });
+    } as any);
 
     if (!execution) {
       console.error("❌ Execution not found");
@@ -154,7 +157,8 @@ async function main() {
     );
 
     console.log("\n📈 Step Execution:");
-    for (const step of execution.steps) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const step of (execution as any).steps) {
       const statusIcon = step.status === "SUCCESS" ? "✅" : step.status === "FAILED" ? "❌" : "⏳";
       console.log(`   ${statusIcon} Step ${step.index} (${step.nodeId}): ${step.status}`);
 
@@ -170,9 +174,11 @@ async function main() {
     // Verify acceptance criteria
     console.log("\n✔️ Acceptance Criteria Verification:");
 
-    const trigger = execution.steps[0];
-    const aiStep = execution.steps[1];
-    const gmailStep = execution.steps[2];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const steps = (execution as any).steps;
+    const trigger = steps[0];
+    const aiStep = steps[1];
+    const gmailStep = steps[2];
 
     const allPassed = [
       {
@@ -193,7 +199,7 @@ async function main() {
       },
       {
         label: "All steps executed in order",
-        passed: execution.steps.length === 3 && execution.steps.every((s) => s.status === "SUCCESS"),
+        passed: steps.length === 3 && steps.every((s: any) => s.status === "SUCCESS"),
       },
     ];
 
