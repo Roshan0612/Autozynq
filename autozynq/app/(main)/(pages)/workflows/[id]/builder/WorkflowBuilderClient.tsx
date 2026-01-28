@@ -29,6 +29,8 @@ import { GoogleFormPicker } from "@/components/GoogleFormPicker";
 import { GoogleSpreadsheetPicker } from "@/app/components/GoogleSpreadsheetPicker";
 import { GoogleSheetPicker } from "@/app/components/GoogleSheetPicker";
 import { GoogleSheetColumnMapper } from "@/app/components/GoogleSheetColumnMapper";
+import { CreateFolderConfig } from "@/app/components/nodes/google_drive/CreateFolderConfig";
+import { SetSharingPreferenceConfig } from "@/app/components/nodes/google_drive/SetSharingPreferenceConfig";
 import { WorkflowDefinition } from "@/lib/workflow/schema";
 import { WorkflowStatus } from "@prisma/client";
 
@@ -323,6 +325,32 @@ const NODE_LIBRARY: NodeTemplate[] = [
       cc: "",
       subject: "{{subject}}",
       bodyHtml: "{{body}}",
+    },
+  },
+  {
+    key: "gd-create-folder",
+    label: "Google Drive – Create Folder",
+    category: "action",
+    nodeType: "google_drive.action.createFolder",
+    defaultConfig: {
+      connectionId: "",
+      parentFolderId: "root",
+      customParentFolderId: "",
+      folderName: "{{folderName}}",
+    },
+  },
+  {
+    key: "gd-set-sharing",
+    label: "Google Drive – Set Sharing Preference",
+    category: "action",
+    nodeType: "google_drive.action.setSharingPreference",
+    defaultConfig: {
+      connectionId: "",
+      fileId: "{{fileId}}",
+      role: "viewer",
+      scope: "anyone",
+      email: "",
+      allowDiscovery: false,
     },
   },
 ];
@@ -1236,6 +1264,22 @@ function NodeConfigForm({
             </select>
           </div>
         </div>
+      );
+    case "google_drive.action.createFolder":
+      return (
+        <CreateFolderConfig
+          config={node.config}
+          onChange={onChange}
+          connectionId={node.config.connectionId}
+        />
+      );
+    case "google_drive.action.setSharingPreference":
+      return (
+        <SetSharingPreferenceConfig
+          config={node.config}
+          onChange={onChange}
+          connectionId={node.config.connectionId}
+        />
       );
     default:
       return (

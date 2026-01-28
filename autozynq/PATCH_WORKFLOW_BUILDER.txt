@@ -1,0 +1,19 @@
+PATCH needed for WorkflowBuilderClient.tsx at line 327
+
+ADD before the closing "];":
+
+  // Google Drive
+  {
+    key: "gd-create-folder",
+    label: "Google Drive – Create Folder",
+    category: "action",
+    nodeType: "google_drive.action.createFolder",
+    defaultConfig: { connectionId: "", parentFolderId: "", customParentFolderId: "", folderName: "" },
+  },
+  {
+    key: "gd-set-sharing",
+    label: "Google Drive – Set Sharing Preference",
+    category: "action",
+    nodeType: "google_drive.action.setSharingPreference",
+    defaultConfig: { connectionId: "", fileId: "", role: "viewer", scope: "private", emailAddress: "", allowDiscovery: true },
+  },

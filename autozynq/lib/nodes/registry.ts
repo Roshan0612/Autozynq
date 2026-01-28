@@ -13,6 +13,7 @@ import { logDebugNode } from "./core/log.action";
 import { generateTextAction, generateEmailAction } from "./ai";
 import { whatsappNodes } from "./whatsapp";
 import { instagramNodes } from "./instagram";
+import { googleDriveNodes } from "./google_drive";
 
 // Central registry of all automation nodes.
 // This is the single source of truth for node definitions.
@@ -23,6 +24,7 @@ export const nodeRegistry: Record<string, AutomationNode> = {
   ...slackNodes,
   ...googleFormsNodes,
   ...googleSheetsNodes,
+  ...googleDriveNodes,
   [ifConditionNode.type]: ifConditionNode,
   [testPassthroughTrigger.type]: testPassthroughTrigger,
    [webhookTriggerNode.type]: webhookTriggerNode,
