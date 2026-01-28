@@ -3,70 +3,55 @@
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { UserNav } from "@/components/user-nav";
 
 export default function Navbar() {
   const { data: session } = useSession();
 
   return (
     <nav className="border-b bg-background">
-      <div className="container mx-auto px-4 h-16 flex items-center gap-6">
+      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2">
+        <Link href={session ? "/dashboard" : "/"} className="flex items-center gap-2">
           <div className="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
             <span className="text-primary-foreground font-bold text-xl">A</span>
           </div>
           <span className="font-semibold text-xl">Autozynq</span>
         </Link>
 
-        {/* Navigation Links centered */}
-        <div className="hidden md:flex flex-1 items-center justify-center gap-10">
-          <Link 
-            href="/product" 
-            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Product
-          </Link>
-          <Link 
-            href="/pricing" 
-            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Pricing
-          </Link>
-          <Link 
-            href="/clients" 
-            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Clients
-          </Link>
-          <Link 
-            href="/resources" 
-            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Resources
-          </Link>
-          <Link 
-            href="/documentation" 
-            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Documentation
-          </Link>
-          <Link 
-            href="/enterprises" 
-            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Enterprises
-          </Link>
-        </div>
+        {/* Navigation Links - Only when logged in */}
+        {session && (
+          <div className="hidden md:flex items-center gap-6">
+            <Link 
+              href="/workflows" 
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Workflows
+            </Link>
+            <Link 
+              href="/connections" 
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Connections
+            </Link>
+            <Link 
+              href="/executions" 
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Executions
+            </Link>
+          </div>
+        )}
 
-        {/* Dashboard Button */}
+        {/* Right Side Actions */}
         <div className="flex items-center gap-4">
+          <ThemeToggle />
           {session ? (
-            <Button asChild>
-              <Link href="/dashboard">Dashboard</Link>
-            </Button>
+            <UserNav />
           ) : (
             <Button asChild>
-              <Link href="/api/auth/signin">Sign In</Link>
+              <Link href="/auth/signin">Sign In</Link>
             </Button>
           )}
         </div>
