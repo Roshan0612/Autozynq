@@ -41,39 +41,82 @@ import { WorkflowStatus } from "@prisma/client";
 
 // Custom node component - professional dark theme
 function CustomNode({ data }: { data: Record<string, unknown> }) {
+  const accent = "#3b82f6";
+  const colors = {
+    text: "#e5e7eb",
+    subtext: "#9ca3af",
+    handle: accent,
+  };
   const appIcon = data.appIcon as React.ReactNode | null | undefined;
 
   return (
     <div
-      className="relative w-[260px] min-h-[80px] rounded-xl border border-blue-500/60 bg-gradient-to-b from-slate-900 to-slate-950 p-3 shadow-[0_0_24px_rgba(59,130,246,0.25)]"
+      className="rf-node-card"
+      style={{
+        position: "relative",
+        background: "linear-gradient(180deg, #1f2937 0%, #111827 100%)",
+        border: "1px solid #334155",
+        boxShadow: "0 0 0 1px rgba(59, 130, 246, 0.25), 0 12px 24px rgba(2, 6, 23, 0.6)",
+        borderRadius: "12px",
+        padding: "12px 16px",
+        color: colors.text,
+        fontSize: "13px",
+        fontWeight: 500,
+        minWidth: "260px",
+        pointerEvents: "auto",
+        cursor: "grab",
+        textAlign: "left",
+      }}
     >
       <Handle
         type="target"
         position={Position.Top}
         isConnectable
-        style={{ background: "#3b82f6", width: 12, height: 12, border: "2px solid #0f172a", zIndex: 20 }}
+        className="!w-3 !h-3 !border-2 !border-background"
+        style={{ background: colors.handle }}
       />
-      
-      <div className="flex w-full items-start gap-3">
-        <div className="flex h-12 w-12 min-w-[48px] items-center justify-center rounded-lg border border-blue-500/50 bg-slate-900">
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          width: "100%",
+          textAlign: "left",
+        }}
+      >
+        <div
+          style={{
+            width: 48,
+            minWidth: 48,
+            height: 48,
+            alignSelf: "flex-start",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(15,23,42,0.6)",
+            border: "1px solid rgba(59,130,246,0.25)",
+            borderRadius: 10,
+            padding: 6,
+            overflow: "hidden",
+          }}
+        >
           {appIcon || null}
         </div>
-        
-        <div className="flex-1 min-w-0">
-          <div className="text-sm font-semibold text-slate-100">
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 600, marginBottom: 2, textAlign: "left", lineHeight: 1.2 }}>
             {String(data.label || "Node")}
           </div>
-          <div className="text-xs text-slate-400">
+          <div style={{ fontSize: "11px", color: colors.subtext, wordBreak: "break-word", textAlign: "left" }}>
             {String(data.nodeType)}
           </div>
         </div>
       </div>
-
       <Handle
         type="source"
         position={Position.Bottom}
         isConnectable
-        style={{ background: "#3b82f6", width: 12, height: 12, border: "2px solid #0f172a", zIndex: 20 }}
+        className="!w-3 !h-3 !border-2 !border-background"
+        style={{ background: colors.handle }}
       />
     </div>
   );
@@ -506,11 +549,15 @@ function serializeDefinition(workflowState: WorkflowState): WorkflowDefinition {
 
   return {
     nodes: normalizedNodes,
-    edges: workflowState.edges.map((edge) => ({
-      from: edge.from,
-      to: edge.to,
-      ...(edge.condition ? { condition: edge.condition } : {}),
-    })),
+    edges: workflowState.edges.map((edge) => {
+      const conditionValue = (edge.data as Record<string, unknown> | undefined)?.condition;
+      const condition = typeof conditionValue === "string" ? conditionValue : (edge.label as string | undefined);
+      return {
+        from: edge.from,
+        to: edge.to,
+        ...(edge.condition ? { condition: edge.condition } : {}),
+      };
+    }),
     ui: {
       positions: workflowState.nodes.reduce<Record<string, { x: number; y: number }>>((acc, node) => {
         acc[node.id] = node.position;
@@ -1298,7 +1345,6 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
   const [workflowName, setWorkflowName] = useState(props.workflowName);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(props.workflowName);
-  const [nodeSearch, setNodeSearch] = useState("");
 
   useEffect(() => {
     if (flowInstance) {
@@ -1614,24 +1660,10 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
 
         <div className="grid grid-cols-12 gap-3 flex-1">
           {/* Left Palette - Drag and Drop Nodes */}
-          <div className="col-span-2 bg-slate-900 rounded-lg border border-slate-800 p-3 max-h-[70vh] overflow-hidden flex flex-col">
-            <div className="text-xs font-semibold text-slate-300 uppercase mb-2">Add Nodes</div>
-            <input
-              value={nodeSearch}
-              onChange={(e) => setNodeSearch(e.target.value)}
-              placeholder="Search nodes..."
-              className="mb-3 w-full rounded border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
-            />
-            <div className="space-y-2 overflow-y-auto max-h-[calc(70vh-76px)] pr-1">
-              {NODE_LIBRARY.filter((tmpl) => {
-                if (!nodeSearch.trim()) return true;
-                const q = nodeSearch.toLowerCase();
-                return (
-                  tmpl.label.toLowerCase().includes(q) ||
-                  tmpl.nodeType.toLowerCase().includes(q) ||
-                  tmpl.category.toLowerCase().includes(q)
-                );
-              }).map((tmpl) => (
+          <div className="col-span-2 bg-slate-900 rounded-lg border border-slate-800 p-3 h-fit max-h-full overflow-y-auto">
+            <div className="text-xs font-semibold text-slate-300 uppercase mb-3">Add Nodes</div>
+            <div className="space-y-2">
+              {NODE_LIBRARY.map((tmpl) => (
                 <div
                   key={tmpl.key}
                   draggable
@@ -1645,24 +1677,13 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
                   <div className="text-slate-400 text-[11px]">{tmpl.category}</div>
                 </div>
               ))}
-              {NODE_LIBRARY.filter((tmpl) => {
-                if (!nodeSearch.trim()) return false;
-                const q = nodeSearch.toLowerCase();
-                return !(
-                  tmpl.label.toLowerCase().includes(q) ||
-                  tmpl.nodeType.toLowerCase().includes(q) ||
-                  tmpl.category.toLowerCase().includes(q)
-                );
-              }).length === NODE_LIBRARY.length && (
-                <div className="text-xs text-slate-500">No nodes found.</div>
-              )}
             </div>
           </div>
 
           {/* Canvas and Config */}
           <div className="col-span-7 space-y-2 flex flex-col">
             <div
-              className="border rounded-lg relative flex-1 overflow-visible"
+              className="border rounded-lg relative flex-1"
               style={{ background: darkMode ? "#1a1a1a" : "#fafafa" }}
               onDragOver={(e) => {
                 e.preventDefault();
@@ -1687,15 +1708,10 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
                       nodeType: template.nodeType,
                       category: template.category,
                       config: { ...template.defaultConfig },
-                      appIcon: getAppIcon(template.nodeType),
-                      onAddNode: () => handleAddNodeFromPlus(newNodeId),
-                      canAdd: true,
                       onConfigChange: (cfg: Record<string, unknown>) => updateNodeConfig(newNodeId, cfg),
                       onDelete: () => removeNode(newNodeId),
                     },
-                    sourcePosition: Position.Bottom,
-                    targetPosition: Position.Top,
-                    type: "custom",
+                    type: "base",
                   };
                   setNodes((nds) => [...nds, newFlowNode]);
                 }
@@ -1714,7 +1730,7 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
               </div>
 
               {showPalette && (
-                <div className="absolute left-3 top-12 z-50 w-80 max-h-[70vh] overflow-hidden rounded-lg border bg-slate-900 border-slate-700 shadow-xl flex flex-col">
+                <div className="absolute left-3 top-12 z-50 w-80 max-h-[480px] overflow-y-auto rounded-lg border bg-slate-900 border-slate-700 shadow-xl">
                   <div className="flex items-center justify-between px-3 py-2 border-b border-slate-700 bg-slate-800">
                     <span className="text-sm font-semibold text-slate-200">Add Node</span>
                     <Button variant="ghost" size="sm" onClick={() => {
@@ -1724,7 +1740,7 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
                       Close
                     </Button>
                   </div>
-                  <div className="p-3 grid grid-cols-1 gap-2 overflow-y-auto max-h-[calc(70vh-44px)]">
+                  <div className="p-3 grid grid-cols-1 gap-2">
                     {NODE_LIBRARY.map((tmpl) => (
                       <button
                         key={tmpl.key}
@@ -1788,8 +1804,6 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
                 }}
                 minZoom={0.1}
                 maxZoom={4}
-                className="bg-muted"
-                proOptions={{ hideAttribution: true }}
               >
                 <Background color={darkMode ? "#2a2a2a" : "#e0e0e0"} />
                 <Controls />

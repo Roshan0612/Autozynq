@@ -1,0 +1,41 @@
+Changes needed in WorkflowBuilderClient.tsx:
+
+1. Line 75 - Update Handle styling:
+FROM: style={{ background: colors.border, width: 10, height: 10, border: "2px solid #000" }}
+TO:   className="!w-3 !h-3 !border-2 !border-background"
+      style={{ background: colors.border }}
+
+2. Line 111 - Update Handle styling:
+FROM: style={{ background: colors.border, width: 10, height: 10, border: "2px solid #000" }}
+TO:   className="!w-3 !h-3 !border-2 !border-background"
+      style={{ background: colors.border }}
+
+3. Line 427 - Update edge type in toReactFlowEdges:
+FROM: type: 'custom',
+      animated: true,
+      style: { stroke: "#3b82f6", strokeWidth: 4 },
+      markerEnd: { type: MarkerType.ArrowClosed, color: "#3b82f6" },
+TO:   type: 'smoothstep',
+      animated: false,
+      style: { stroke: "#3b82f6", strokeWidth: 2.5 },
+      markerEnd: { type: MarkerType.ArrowClosed, color: "#3b82f6", width: 20, height: 20 },
+
+4. Line 1369 - Update edge type in addNode:
+FROM: type: 'custom',
+      animated: true,
+      style: { stroke: "#3b82f6", strokeWidth: 4 },
+      markerEnd: { type: MarkerType.ArrowClosed, color: "#3b82f6" },
+TO:   type: 'smoothstep',
+      animated: false,
+      style: { stroke: "#3b82f6", strokeWidth: 2.5 },
+      markerEnd: { type: MarkerType.ArrowClosed, color: "#3b82f6", width: 20, height: 20 },
+
+5. Line 1388 - Update edge type in handleConnect:
+FROM: type: 'custom',
+      animated: true,
+      style: { stroke: "#3b82f6", strokeWidth: 4 },
+      markerEnd: { type: MarkerType.ArrowClosed, color: "#3b82f6" },
+TO:   type: 'smoothstep',
+      animated: false,
+      style: { stroke: "#3b82f6", strokeWidth: 2.5 },
+      markerEnd: { type: MarkerType.ArrowClosed, color: "#3b82f6", width: 20, height: 20 },
