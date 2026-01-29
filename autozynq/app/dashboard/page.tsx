@@ -7,7 +7,7 @@ import Navbar from "../components/Navbar";
 import Sidebar from "../components/sidebar/Sidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Activity, Zap, TrendingUp, Plug2, ArrowRight } from "lucide-react";
+import { Activity, Zap, TrendingUp, Plug2, ArrowRight, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export default function DashboardPage() {
@@ -19,6 +19,7 @@ export default function DashboardPage() {
     avgDailyRuns: 0,
     connectedApps: 0,
   });
+  const [isCreatingWorkflow, setIsCreatingWorkflow] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -70,6 +71,31 @@ export default function DashboardPage() {
     }
   }, [status]);
 
+  const handleCreateWorkflow = async () => {
+    setIsCreatingWorkflow(true);
+    try {
+      const res = await fetch("/api/workflows/create-empty", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "Untitled Workflow" }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const workflowId = data.workflow?.id;
+        if (workflowId) {
+          router.push(`/workflows/${workflowId}/builder`);
+        }
+      } else {
+        console.error("Failed to create workflow");
+      }
+    } catch (error) {
+      console.error("Error creating workflow:", error);
+    } finally {
+      setIsCreatingWorkflow(false);
+    }
+  };
+
   if (status === "loading") {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -118,11 +144,22 @@ export default function DashboardPage() {
       <div className="ml-16">
         <div className="container mx-auto px-6 py-8">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-            <p className="text-muted-foreground mt-2">
-              Build, run, and monitor your automations
-            </p>
+          <div className="mb-8 flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+              <p className="text-muted-foreground mt-2">
+                Build, run, and monitor your automations
+              </p>
+            </div>
+            <Button 
+              onClick={handleCreateWorkflow} 
+              disabled={isCreatingWorkflow}
+              size="lg"
+              className="gap-2"
+            >
+              <Plus className="h-5 w-5" />
+              {isCreatingWorkflow ? "Creating..." : "Create Workflow"}
+            </Button>
           </div>
 
           {/* Quick Stats */}

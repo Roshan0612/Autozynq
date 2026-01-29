@@ -26,7 +26,7 @@ export const workflowEdgeSchema = z.object({
 });
 
 export const workflowDefinitionSchema = z.object({
-  nodes: z.array(workflowNodeSchema).min(1, "Workflow needs at least one node"),
+  nodes: z.array(workflowNodeSchema).default([]),
   edges: z.array(workflowEdgeSchema).default([]),
   ui: workflowUiSchema.optional(),
 });

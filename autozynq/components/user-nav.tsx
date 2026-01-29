@@ -29,7 +29,7 @@ export function UserNav() {
     : session.user.email?.[0].toUpperCase() || "U";
 
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <button className="relative h-9 w-9 rounded-full focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
           <Avatar className="h-9 w-9">
@@ -40,7 +40,7 @@ export function UserNav() {
           </Avatar>
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" forceMount>
+      <DropdownMenuContent className="w-56" align="end" sideOffset={5}>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             {session.user.name && (
@@ -52,7 +52,10 @@ export function UserNav() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/" })}>
+        <DropdownMenuItem 
+          onClick={() => signOut({ callbackUrl: "/" })}
+          className="cursor-pointer"
+        >
           <LogOut className="mr-2 h-4 w-4" />
           <span>Log out</span>
         </DropdownMenuItem>

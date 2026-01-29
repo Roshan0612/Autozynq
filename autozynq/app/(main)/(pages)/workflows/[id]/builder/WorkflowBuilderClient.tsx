@@ -1304,6 +1304,9 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
   const [showPalette, setShowPalette] = useState(false);
   const [paletteSourceNode, setPaletteSourceNode] = useState<string | null>(null);
   const [darkMode, setDarkMode] = useState(true);
+  const [workflowName, setWorkflowName] = useState(props.workflowName);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState(props.workflowName);
 
   useEffect(() => {
     if (flowInstance) {
@@ -1458,6 +1461,35 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
     }
   }, [props.workflowId, state, status]);
 
+  const handleSaveWorkflowName = useCallback(async (newName: string) => {
+    if (!newName.trim() || newName === workflowName) {
+      setIsEditingName(false);
+      setEditedName(workflowName);
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/workflows/${props.workflowId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newName.trim() }),
+      });
+
+      if (res.ok) {
+        setWorkflowName(newName.trim());
+        setSaveMessage("Workflow name updated");
+      } else {
+        setSaveMessage("Failed to update workflow name");
+        setEditedName(workflowName);
+      }
+    } catch (error) {
+      setSaveMessage("Failed to update workflow name");
+      setEditedName(workflowName);
+    } finally {
+      setIsEditingName(false);
+    }
+  }, [props.workflowId, workflowName]);
+
   const handleToggleActivation = useCallback(async () => {
     setActivating(true);
     setSaveMessage(null);
@@ -1509,9 +1541,34 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
     <ReactFlowProvider>
       <div className="w-full h-screen flex flex-col py-4 px-4">
         <div className="flex items-center justify-between mb-4">
-          <div>
+          <div className="flex-1">
             <p className="text-sm text-muted-foreground">Workflow Builder</p>
-            <h1 className="text-2xl font-mono font-bold">{props.workflowName}</h1>
+            {isEditingName ? (
+              <input
+                type="text"
+                value={editedName}
+                onChange={(e) => setEditedName(e.target.value)}
+                onBlur={() => handleSaveWorkflowName(editedName)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleSaveWorkflowName(editedName);
+                  } else if (e.key === "Escape") {
+                    setIsEditingName(false);
+                    setEditedName(workflowName);
+                  }
+                }}
+                autoFocus
+                className="text-2xl font-mono font-bold bg-transparent border-b-2 border-primary outline-none max-w-md"
+              />
+            ) : (
+              <h1
+                className="text-2xl font-mono font-bold cursor-pointer hover:text-primary transition-colors"
+                onClick={() => setIsEditingName(true)}
+                title="Click to edit"
+              >
+                {workflowName}
+              </h1>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <span

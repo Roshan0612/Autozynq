@@ -59,11 +59,16 @@ export function validateWorkflowDefinition(definition: unknown): WorkflowDefinit
     }
   }
 
-  // Ensure exactly one trigger
-  if (triggerNodes.length !== 1) {
+  // Ensure at most one trigger (zero triggers allowed for empty workflows)
+  if (triggerNodes.length > 1) {
+    issues.push(`Workflow has ${triggerNodes.length} trigger nodes; only one is allowed`);
+  }
+  
+  // If workflow has nodes, it must have exactly one trigger
+  if (workflow.nodes.length > 0 && triggerNodes.length !== 1) {
     issues.push(
       triggerNodes.length === 0
-        ? "Workflow must contain exactly one trigger node"
+        ? "Workflow with nodes must contain exactly one trigger node"
         : `Workflow has ${triggerNodes.length} trigger nodes; only one is allowed`,
     );
   }

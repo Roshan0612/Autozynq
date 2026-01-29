@@ -78,4 +78,6 @@ export const authOptions: any = {
   pages: {
     signIn: "/auth/signin",
   },
+  // Explicit callback URLs for OAuth providers
+  redirectProxyUrl: process.env.NEXTAUTH_URL,
 };
