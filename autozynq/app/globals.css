@@ -75,47 +75,22 @@
 }
 
 .react-flow__node {
-  background-color: #ffffff !important;
-  border: 2px solid #3b82f6 !important;
-  color: #1f2937 !important;
-  padding: 12px !important;
-  font-size: 14px !important;
-  font-weight: 500 !important;
-  min-width: 140px !important;
-  min-height: 70px !important;
-  width: 140px !important;
-  height: 70px !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-  display: flex !important;
-  z-index: 100 !important;
-  align-items: center !important;
-  justify-content: center !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
-  border-radius: 6px !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  box-shadow: none !important;
 }
 
 .react-flow__node-default {
-  background-color: #ffffff !important;
-  border: 2px solid #3b82f6 !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-  width: 140px !important;
-  height: 70px !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
 }
 
-.react-flow__node-default .react-flow__handle {
-  opacity: 1 !important;
+/* NUCLEAR OVERRIDE - Force all node content visible */
+.react-flow__node * {
   visibility: visible !important;
-}
-
-.react-flow__handle {
-  width: 12px !important;
-  height: 12px !important;
-  background-color: #3b82f6 !important;
   opacity: 1 !important;
-  visibility: visible !important;
-  border: 2px solid #1e40af !important;
 }
 
 /* Force edges visible */
@@ -133,16 +108,16 @@
 }
 
 .react-flow__edge path {
-  stroke: #3b82f6 !important;
-  stroke-width: 3px !important;
+  stroke: #334155 !important;
+  stroke-width: 2.5px !important;
   opacity: 1 !important;
   visibility: visible !important;
   display: block !important;
 }
 
 .react-flow__edge-path {
-  stroke: #3b82f6 !important;
-  stroke-width: 3px !important;
+  stroke: #334155 !important;
+  stroke-width: 2.5px !important;
   opacity: 1 !important;
   visibility: visible !important;
 }

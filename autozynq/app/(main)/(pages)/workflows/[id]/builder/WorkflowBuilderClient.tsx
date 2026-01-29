@@ -19,8 +19,12 @@ import ReactFlow, {
   EdgeProps,
   NodeChange,
   EdgeChange,
+  useNodesState,
+  useEdgesState,
+  addEdge,
 } from "reactflow";
 import "reactflow/dist/style.css";
+import "@/app/workflow-nodes.css";
 import { nanoid } from "nanoid";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -37,76 +41,39 @@ import { WorkflowStatus } from "@prisma/client";
 
 // Custom node component - professional dark theme
 function CustomNode({ data }: { data: Record<string, unknown> }) {
-  const categoryColors: Record<string, { bg: string; border: string; text: string }> = {
-    trigger: { bg: "#1e3a8a", border: "#3b82f6", text: "#93c5fd" },
-    action: { bg: "#1f2937", border: "#6b7280", text: "#d1d5db" },
-    logic: { bg: "#4c1d95", border: "#a78bfa", text: "#e9d5ff" },
-  };
-
-  const category = typeof data.category === 'string' ? data.category : 'action';
-  const colors = categoryColors[category] || categoryColors.action;
   const appIcon = data.appIcon as React.ReactNode | null | undefined;
 
   return (
     <div
-      style={{
-        position: "relative",
-        background: colors.bg,
-        border: `2px solid ${colors.border}`,
-        padding: "12px 14px",
-        color: colors.text,
-        fontSize: "13px",
-        fontWeight: 500,
-        minWidth: "180px",
-        borderRadius: "6px",
-        boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
-        pointerEvents: "auto",
-        cursor: "grab",
-        textAlign: "center",
-      }}
+      className="relative w-[260px] min-h-[80px] rounded-xl border border-blue-500/60 bg-gradient-to-b from-slate-900 to-slate-950 p-3 shadow-[0_0_24px_rgba(59,130,246,0.25)]"
     >
       <Handle
         type="target"
         position={Position.Top}
         isConnectable
-        style={{ background: colors.border, width: 10, height: 10, border: "2px solid #000" }}
+        style={{ background: "#3b82f6", width: 12, height: 12, border: "2px solid #0f172a", zIndex: 20 }}
       />
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          width: "100%",
-          textAlign: "left",
-        }}
-      >
-        <div
-          style={{
-            width: 50,
-            minWidth: 50,
-            height: 50,
-            alignSelf: "center",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "rgba(0,0,0,0.25)",
-            borderRadius: 6,
-            padding: 0,
-            overflow: "hidden",
-          }}
-        >
+      
+      <div className="flex w-full items-start gap-3">
+        <div className="flex h-12 w-12 min-w-[48px] items-center justify-center rounded-lg border border-blue-500/50 bg-slate-900">
           {appIcon || null}
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 600, marginBottom: 4 }}>{String(data.label || "Node")}</div>
-          <div style={{ fontSize: "11px", opacity: 0.8, wordBreak: "break-word" }}>{String(data.nodeType)}</div>
+        
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-semibold text-slate-100">
+            {String(data.label || "Node")}
+          </div>
+          <div className="text-xs text-slate-400">
+            {String(data.nodeType)}
+          </div>
         </div>
       </div>
+
       <Handle
         type="source"
         position={Position.Bottom}
         isConnectable
-        style={{ background: colors.border, width: 10, height: 10, border: "2px solid #000" }}
+        style={{ background: "#3b82f6", width: 12, height: 12, border: "2px solid #0f172a", zIndex: 20 }}
       />
     </div>
   );
@@ -383,8 +350,8 @@ function hydrateState(definition: WorkflowDefinition): WorkflowState {
     };
   });
 
-  const edges: BuilderEdge[] = (definition.edges || []).map((edge, idx) => ({
-    id: edge.from + "-" + edge.to + "-" + idx,
+  const edges: BuilderEdge[] = (definition.edges || []).map((edge) => ({
+    id: `edge_${edge.from}_${edge.to}_${Math.random().toString(36).substring(2, 11)}`,
     from: edge.from,
     to: edge.to,
     condition: edge.condition || undefined,
@@ -421,12 +388,12 @@ function toReactFlowEdges(edges: BuilderEdge[]): FlowEdge[] {
     target: edge.to,
     sourceHandle: 'b',
     targetHandle: 't',
-    type: 'custom',
+    type: 'smoothstep',
     label: edge.condition || undefined,
     data: { condition: edge.condition },
-    animated: true,
-    style: { stroke: "#3b82f6", strokeWidth: 4 },
-    markerEnd: { type: MarkerType.ArrowClosed, color: "#3b82f6" },
+    animated: false,
+    style: { stroke: "#334155", strokeWidth: 2.5 },
+    markerEnd: { type: MarkerType.ArrowClosed, color: "#334155", width: 20, height: 20 },
   }));
 }
 
@@ -449,11 +416,30 @@ function getAppIcon(nodeType: string): React.ReactNode | null {
     );
   }
 
+  if (nodeType.startsWith("google_drive")) {
+    return (
+      <svg width="100%" height="100%" viewBox="0 0 24 24" role="img" aria-label="Google Drive" style={{ display: "block" }}>
+        <polygon points="9,3 15,3 22,15 16,15" fill="#0f9d58" />
+        <polygon points="2,15 9,3 16,15 9,21" fill="#4285f4" />
+        <polygon points="2,15 9,21 22,15 15,3" fill="#f4b400" opacity="0.9" />
+      </svg>
+    );
+  }
+
   if (nodeType.startsWith("gmail")) {
     return (
       <svg width="100%" height="100%" viewBox="0 0 24 24" role="img" aria-label="Gmail" style={{ display: "block" }}>
         <rect x="4" y="5" width="16" height="14" rx="2" ry="2" fill="#ffffff" stroke="#d93025" />
         <path d="M5 7l7 5 7-5" stroke="#d93025" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+
+  if (nodeType.startsWith("email")) {
+    return (
+      <svg width="100%" height="100%" viewBox="0 0 24 24" role="img" aria-label="Email" style={{ display: "block" }}>
+        <rect x="4" y="6" width="16" height="12" rx="2" ry="2" fill="#ffffff" stroke="#64748b" />
+        <path d="M5 8l7 5 7-5" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     );
   }
@@ -470,7 +456,7 @@ function getAppIcon(nodeType: string): React.ReactNode | null {
   return null;
 }
 
-function serializeDefinition(state: WorkflowState): WorkflowDefinition {
+function serializeDefinition(workflowState: WorkflowState): WorkflowDefinition {
   const normalizeFormId = (input?: string) => {
     if (!input) return "";
     if (!input.startsWith("http")) return input.trim();
@@ -481,7 +467,7 @@ function serializeDefinition(state: WorkflowState): WorkflowDefinition {
     return pathParts[pathParts.length - 1] || input.trim();
   };
 
-  const normalizedNodes = state.nodes.map((node) => {
+  const normalizedNodes = workflowState.nodes.map((node) => {
     let config = { ...(node.config ?? {}) } as Record<string, unknown>;
 
     if (node.nodeType === "google_forms.trigger.newResponse") {
@@ -520,13 +506,13 @@ function serializeDefinition(state: WorkflowState): WorkflowDefinition {
 
   return {
     nodes: normalizedNodes,
-    edges: state.edges.map((edge) => ({
+    edges: workflowState.edges.map((edge) => ({
       from: edge.from,
       to: edge.to,
       ...(edge.condition ? { condition: edge.condition } : {}),
     })),
     ui: {
-      positions: state.nodes.reduce<Record<string, { x: number; y: number }>>((acc, node) => {
+      positions: workflowState.nodes.reduce<Record<string, { x: number; y: number }>>((acc, node) => {
         acc[node.id] = node.position;
         return acc;
       }, {}),
@@ -1292,7 +1278,12 @@ function NodeConfigForm({
 }
 
 function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
-  const [state, setState] = useState<WorkflowState>(() => hydrateState(props.initialDefinition));
+  const initialState = useMemo(() => hydrateState(props.initialDefinition), [props.initialDefinition]);
+  const initialFlowNodes = useMemo(() => toReactFlowNodes(initialState.nodes, initialState.edges), [initialState.nodes, initialState.edges]);
+  const initialFlowEdges = useMemo(() => toReactFlowEdges(initialState.edges), [initialState.edges]);
+  
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialFlowNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialFlowEdges);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [status, setStatus] = useState<WorkflowStatus>(props.initialStatus);
   const [saving, setSaving] = useState(false);
@@ -1307,6 +1298,7 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
   const [workflowName, setWorkflowName] = useState(props.workflowName);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(props.workflowName);
+  const [nodeSearch, setNodeSearch] = useState("");
 
   useEffect(() => {
     if (flowInstance) {
@@ -1316,35 +1308,6 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
       return () => clearTimeout(timer);
     }
   }, [flowInstance]);
-
-  const addNode = useCallback((templateKey: string) => {
-    const template = NODE_LIBRARY.find((t) => t.key === templateKey);
-    if (!template) return;
-    
-    setState((prev) => {
-      const newNode: BuilderNode = {
-        id: `node_${nanoid(6)}`,
-        nodeType: template.nodeType,
-        category: template.category,
-        config: { ...template.defaultConfig },
-        position: { x: 120 + prev.nodes.length * 40, y: 120 + prev.nodes.length * 30 },
-      };
-      
-      const newState = { ...prev, nodes: [...prev.nodes, newNode] };
-      
-      if (paletteSourceNode && paletteSourceNode !== newNode.id) {
-        const newEdge: BuilderEdge = {
-          id: `e-${nanoid(6)}`,
-          from: paletteSourceNode,
-          to: newNode.id,
-        };
-        newState.edges = [...newState.edges, newEdge];
-        setPaletteSourceNode(null);
-      }
-      
-      return newState;
-    });
-  }, [paletteSourceNode]);
 
   const handleAddNodeFromPlus = useCallback((sourceNodeId?: string) => {
     if (sourceNodeId) {
@@ -1356,91 +1319,123 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
     }
   }, []);
 
-  const flowNodes = useMemo(() => 
-    toReactFlowNodes(state.nodes, state.edges, handleAddNodeFromPlus),
-    [state.nodes, state.edges, handleAddNodeFromPlus]
-  );
-  
-  const flowEdges = useMemo(() => toReactFlowEdges(state.edges), [state.edges]);
-
-  const onNodesChange = useCallback((changes: unknown) => {
-    setState((prev) => {
-      const updatedFlow = applyNodeChanges(changes as NodeChange[], toReactFlowNodes(prev.nodes, prev.edges));
-      const updatedNodes: BuilderNode[] = prev.nodes.map((node) => {
-        const match = updatedFlow.find((n) => n.id === node.id);
-        return match ? { ...node, position: match.position } : node;
-      });
-      return { ...prev, nodes: updatedNodes };
-    });
-  }, []);
-
-  const onEdgesChange = useCallback((changes: unknown) => {
-    setState((prev) => {
-      const updatedFlow = applyEdgeChanges(changes as EdgeChange[], toReactFlowEdges(prev.edges));
-      const updatedEdges: BuilderEdge[] = updatedFlow.map((edge) => {
-        const conditionValue = (edge.data as Record<string, unknown>)?.condition;
-        const condition = typeof conditionValue === "string" ? conditionValue : (edge.label as string | undefined);
-        return {
-          id: edge.id,
-          from: edge.source,
-          to: edge.target,
-          condition: condition || undefined,
-        };
-      });
-      return { ...prev, edges: updatedEdges };
-    });
-  }, []);
-
-  const onConnect = useCallback((connection: Connection) => {
-    setState((prev) => {
-      if (!connection.source || !connection.target) return prev;
-      const exists = prev.edges.some(
-        (e) => e.from === connection.source && e.to === connection.target
-      );
-      if (exists) return prev;
-      const newEdge: BuilderEdge = {
-        id: `e-${nanoid(6)}`,
-        from: connection.source,
-        to: connection.target,
+  const addNode = useCallback((templateKey: string) => {
+    const template = NODE_LIBRARY.find((t) => t.key === templateKey);
+    if (!template) return;
+    
+    const newNodeId = `node_${nanoid(6)}`;
+    const newFlowNode: FlowNode = {
+      id: newNodeId,
+      position: { x: 120 + nodes.length * 40, y: 120 + nodes.length * 30 },
+      data: {
+        label: template.label,
+        category: template.category,
+        nodeType: template.nodeType,
+        config: { ...template.defaultConfig },
+        onAddNode: () => handleAddNodeFromPlus(newNodeId),
+        canAdd: true,
+        appIcon: getAppIcon(template.nodeType),
+      },
+      sourcePosition: Position.Bottom,
+      targetPosition: Position.Top,
+      type: "custom",
+    };
+    
+    setNodes((nds) => [...nds, newFlowNode]);
+    
+    if (paletteSourceNode && paletteSourceNode !== newNodeId) {
+      const newEdge: FlowEdge = {
+        id: `edge_${nanoid(8)}`,
+        source: paletteSourceNode,
+        target: newNodeId,
+        sourceHandle: 'b',
+        targetHandle: 't',
+        type: 'smoothstep',
+        animated: false,
+        style: { stroke: "#334155", strokeWidth: 2.5 },
+        markerEnd: { type: MarkerType.ArrowClosed, color: "#334155", width: 20, height: 20 },
       };
-      return { ...prev, edges: [...prev.edges, newEdge] };
-    });
-  }, []);
+      setEdges((eds) => addEdge(newEdge, eds));
+      setPaletteSourceNode(null);
+    }
+  }, [nodes.length, paletteSourceNode, handleAddNodeFromPlus, setNodes, setEdges]);
+
+  const handleConnect = useCallback((connection: Connection) => {
+    if (!connection.source || !connection.target) return;
+    
+    const newEdge: FlowEdge = {
+      id: `edge_${nanoid(8)}`,
+      source: connection.source,
+      target: connection.target,
+      sourceHandle: 'b',
+      targetHandle: 't',
+      type: 'smoothstep',
+      animated: false,
+      style: { stroke: "#334155", strokeWidth: 2.5 },
+      markerEnd: { type: MarkerType.ArrowClosed, color: "#334155", width: 20, height: 20 },
+    };
+    
+    setEdges((eds) => addEdge(newEdge, eds));
+  }, [setEdges]);
 
   const updateNodeConfig = useCallback((nodeId: string, config: Record<string, unknown>) => {
-    setState((prev) => ({
-      ...prev,
-      nodes: prev.nodes.map((n) => (n.id === nodeId ? { ...n, config } : n)),
-    }));
-  }, []);
+    setNodes((nds) =>
+      nds.map((n) =>
+        n.id === nodeId
+          ? { ...n, data: { ...n.data, config } }
+          : n
+      )
+    );
+  }, [setNodes]);
 
   const removeNode = useCallback((nodeId: string) => {
-    setState((prev) => ({
-      nodes: prev.nodes.filter((n) => n.id !== nodeId),
-      edges: prev.edges.filter((e) => e.from !== nodeId && e.to !== nodeId),
-    }));
+    setNodes((nds) => nds.filter((n) => n.id !== nodeId));
+    setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
     setSelectedNodeId(null);
-  }, []);
+  }, [setNodes, setEdges]);
 
   const updateEdgeCondition = useCallback((edgeId: string, value: string) => {
-    setState((prev) => ({
-      ...prev,
-      edges: prev.edges.map((e) => (e.id === edgeId ? { ...e, condition: value || undefined } : e)),
-    }));
-  }, []);
+    setEdges((eds) =>
+      eds.map((e) =>
+        e.id === edgeId
+          ? { ...e, label: value || undefined, data: { ...(e.data || {}), condition: value || undefined } }
+          : e
+      )
+    );
+  }, [setEdges]);
 
   const removeEdge = useCallback((edgeId: string) => {
-    setState((prev) => ({
-      ...prev,
-      edges: prev.edges.filter((e) => e.id !== edgeId),
-    }));
-  }, []);
+    setEdges((eds) => eds.filter((e) => e.id !== edgeId));
+  }, [setEdges]);
+
+  const getCurrentState = useCallback((): WorkflowState => {
+    return {
+      nodes: nodes.map((n) => ({
+        id: n.id,
+        nodeType: n.data.nodeType,
+        category: n.data.category,
+        config: n.data.config || {},
+        position: n.position,
+      })),
+      edges: edges.map((e) => {
+        const conditionValue = (e.data as Record<string, unknown> | undefined)?.condition;
+        const condition = typeof conditionValue === "string" ? conditionValue : (e.label as string | undefined);
+        return {
+          id: e.id,
+          from: e.source,
+          to: e.target,
+          condition: condition || undefined,
+        };
+      }),
+    };
+  }, [nodes, edges]);
 
   const handleSave = useCallback(async () => {
     setSaving(true);
     setSaveMessage(null);
     try {
-      const payload = serializeDefinition(state);
+      const currentState = getCurrentState();
+      const payload = serializeDefinition(currentState);
       const res = await fetch(`/api/workflows/${props.workflowId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -1459,7 +1454,7 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
     } finally {
       setSaving(false);
     }
-  }, [props.workflowId, state, status]);
+  }, [props.workflowId, getCurrentState, status]);
 
   const handleSaveWorkflowName = useCallback(async (newName: string) => {
     if (!newName.trim() || newName === workflowName) {
@@ -1535,7 +1530,17 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
     }
   }, [props.workflowId]);
 
-  const selectedNode = state.nodes.find((n) => n.id === selectedNodeId) || null;
+  const selectedNode = useMemo(() => {
+    const flowNode = nodes.find((n) => n.id === selectedNodeId);
+    if (!flowNode) return null;
+    return {
+      id: flowNode.id,
+      nodeType: flowNode.data.nodeType,
+      category: flowNode.data.category,
+      config: flowNode.data.config || {},
+      position: flowNode.position,
+    } as BuilderNode;
+  }, [nodes, selectedNodeId]);
 
   return (
     <ReactFlowProvider>
@@ -1609,10 +1614,24 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
 
         <div className="grid grid-cols-12 gap-3 flex-1">
           {/* Left Palette - Drag and Drop Nodes */}
-          <div className="col-span-2 bg-slate-900 rounded-lg border border-slate-800 p-3 h-fit max-h-full overflow-y-auto">
-            <div className="text-xs font-semibold text-slate-300 uppercase mb-3">Add Nodes</div>
-            <div className="space-y-2">
-              {NODE_LIBRARY.map((tmpl) => (
+          <div className="col-span-2 bg-slate-900 rounded-lg border border-slate-800 p-3 max-h-[70vh] overflow-hidden flex flex-col">
+            <div className="text-xs font-semibold text-slate-300 uppercase mb-2">Add Nodes</div>
+            <input
+              value={nodeSearch}
+              onChange={(e) => setNodeSearch(e.target.value)}
+              placeholder="Search nodes..."
+              className="mb-3 w-full rounded border border-slate-700 bg-slate-800 px-2 py-1 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+            />
+            <div className="space-y-2 overflow-y-auto max-h-[calc(70vh-76px)] pr-1">
+              {NODE_LIBRARY.filter((tmpl) => {
+                if (!nodeSearch.trim()) return true;
+                const q = nodeSearch.toLowerCase();
+                return (
+                  tmpl.label.toLowerCase().includes(q) ||
+                  tmpl.nodeType.toLowerCase().includes(q) ||
+                  tmpl.category.toLowerCase().includes(q)
+                );
+              }).map((tmpl) => (
                 <div
                   key={tmpl.key}
                   draggable
@@ -1626,13 +1645,24 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
                   <div className="text-slate-400 text-[11px]">{tmpl.category}</div>
                 </div>
               ))}
+              {NODE_LIBRARY.filter((tmpl) => {
+                if (!nodeSearch.trim()) return false;
+                const q = nodeSearch.toLowerCase();
+                return !(
+                  tmpl.label.toLowerCase().includes(q) ||
+                  tmpl.nodeType.toLowerCase().includes(q) ||
+                  tmpl.category.toLowerCase().includes(q)
+                );
+              }).length === NODE_LIBRARY.length && (
+                <div className="text-xs text-slate-500">No nodes found.</div>
+              )}
             </div>
           </div>
 
           {/* Canvas and Config */}
           <div className="col-span-7 space-y-2 flex flex-col">
             <div
-              className="border rounded-lg relative flex-1"
+              className="border rounded-lg relative flex-1 overflow-visible"
               style={{ background: darkMode ? "#1a1a1a" : "#fafafa" }}
               onDragOver={(e) => {
                 e.preventDefault();
@@ -1648,16 +1678,26 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
                     y: e.clientY,
                   });
                   
-                  setState((prev) => {
-                    const newNode: BuilderNode = {
-                      id: `node_${nanoid(6)}`,
+                  const newNodeId = `node_${nanoid(6)}`;
+                  const newFlowNode: FlowNode = {
+                    id: newNodeId,
+                    position: pos,
+                    data: {
+                      label: template.label,
                       nodeType: template.nodeType,
                       category: template.category,
                       config: { ...template.defaultConfig },
-                      position: pos,
-                    };
-                    return { ...prev, nodes: [...prev.nodes, newNode] };
-                  });
+                      appIcon: getAppIcon(template.nodeType),
+                      onAddNode: () => handleAddNodeFromPlus(newNodeId),
+                      canAdd: true,
+                      onConfigChange: (cfg: Record<string, unknown>) => updateNodeConfig(newNodeId, cfg),
+                      onDelete: () => removeNode(newNodeId),
+                    },
+                    sourcePosition: Position.Bottom,
+                    targetPosition: Position.Top,
+                    type: "custom",
+                  };
+                  setNodes((nds) => [...nds, newFlowNode]);
                 }
               }}
             >
@@ -1674,7 +1714,7 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
               </div>
 
               {showPalette && (
-                <div className="absolute left-3 top-12 z-50 w-80 max-h-[480px] overflow-y-auto rounded-lg border bg-slate-900 border-slate-700 shadow-xl">
+                <div className="absolute left-3 top-12 z-50 w-80 max-h-[70vh] overflow-hidden rounded-lg border bg-slate-900 border-slate-700 shadow-xl flex flex-col">
                   <div className="flex items-center justify-between px-3 py-2 border-b border-slate-700 bg-slate-800">
                     <span className="text-sm font-semibold text-slate-200">Add Node</span>
                     <Button variant="ghost" size="sm" onClick={() => {
@@ -1684,7 +1724,7 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
                       Close
                     </Button>
                   </div>
-                  <div className="p-3 grid grid-cols-1 gap-2">
+                  <div className="p-3 grid grid-cols-1 gap-2 overflow-y-auto max-h-[calc(70vh-44px)]">
                     {NODE_LIBRARY.map((tmpl) => (
                       <button
                         key={tmpl.key}
@@ -1704,7 +1744,7 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
                 </div>
               )}
 
-              {state.nodes.length === 0 && (
+              {nodes.length === 0 && (
                 <div className="absolute inset-0 flex items-center justify-center" style={{ zIndex: 60 }}>
                   <div className={`flex flex-col items-center gap-3 rounded-lg border border-dashed px-6 py-8 text-center ${
                     darkMode 
@@ -1729,13 +1769,13 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
               )}
 
               <ReactFlow
-                nodes={flowNodes}
-                edges={flowEdges}
+                nodes={nodes}
+                edges={edges}
                 nodeTypes={nodeTypes}
                 edgeTypes={edgeTypes}
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
-                onConnect={onConnect}
+                onConnect={handleConnect}
                 onInit={setFlowInstance}
                 onNodeClick={(_, node) => setSelectedNodeId(node.id)}
                 onPaneClick={() => setSelectedNodeId(null)}
@@ -1748,6 +1788,8 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
                 }}
                 minZoom={0.1}
                 maxZoom={4}
+                className="bg-muted"
+                proOptions={{ hideAttribution: true }}
               >
                 <Background color={darkMode ? "#2a2a2a" : "#e0e0e0"} />
                 <Controls />
@@ -1795,15 +1837,18 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
                   <CardTitle className="font-mono text-sm">Edges</CardTitle>
                 </CardHeader>
               <CardContent className="space-y-3">
-                {state.edges.length === 0 ? (
+                {edges.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No edges. Connect nodes on the canvas.</p>
                 ) : (
                   <div className="space-y-3">
-                    {state.edges.map((edge) => (
+                    {edges.map((edge) => {
+                      const conditionValue = (edge.data as Record<string, unknown> | undefined)?.condition;
+                      const condition = typeof conditionValue === "string" ? conditionValue : (edge.label as string | undefined);
+                      return (
                       <div key={edge.id} className="border rounded p-2">
                         <div className="flex items-center justify-between mb-2">
                           <div className="font-mono text-xs text-muted-foreground">
-                            {edge.from} → {edge.to}
+                            {edge.source} → {edge.target}
                           </div>
                           <Button
                             size="sm"
@@ -1816,13 +1861,14 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
                         </div>
                         <p className="font-mono text-[11px] text-muted-foreground">Condition (optional)</p>
                         <input
-                          value={edge.condition || ""}
+                          value={condition || ""}
                           onChange={(e) => updateEdgeCondition(edge.id, e.target.value)}
                           placeholder="true / false / any string"
                           className="w-full rounded border px-2 py-1 text-sm"
                         />
                       </div>
-                    ))}
+                    );
+                    })}
                   </div>
                 )}
               </CardContent>
