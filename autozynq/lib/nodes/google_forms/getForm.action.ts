@@ -16,24 +16,16 @@ const outputSchema = z.object({
 export const googleFormsGetFormAction: AutomationNode = {
   type: "google_forms.action.getForm",
   category: "action",
+  app: "Google Forms",
   displayName: "Google Forms – Get Form",
   description: "Fetch form metadata and items.",
   configSchema,
   outputSchema,
   outputFields: [],
-  requiresConnection: false,
+  requiresConnection: true,
   async run(ctx: NodeContext) {
     const cfg = configSchema.parse(ctx.config);
-    // Mock: return a simple shape based on formId
-    return {
-      formId: cfg.formId,
-      title: `Mock Form ${cfg.formId}`,
-      description: "A sample Google Form",
-      items: [
-        { id: "q1", title: "What is your name?", type: "shortAnswer" },
-        { id: "q2", title: "Email", type: "shortAnswer" },
-        { id: "q3", title: "Rating", type: "scale" },
-      ],
-    };
+    // TODO: Implement real Google Forms API call here for production
+    throw new Error("Google Forms getForm action is not implemented in production mode.");
   },
 };

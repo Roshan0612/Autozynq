@@ -11,8 +11,6 @@ import {
   getWorkflowSubscriptions,
   deleteTriggerSubscription,
 } from "../triggers/subscriptions";
-import { generateRandomId } from "../utils";
-import { getLatestResponseId } from "../integrations/google/forms";
 import { connectionHasScopes } from "../integrations/google/auth";
 
 /**
@@ -122,74 +120,57 @@ export async function activateWorkflow(
     );
   }
 
-  // Determine trigger type from node type
-  const nodeType = (triggerNode as any).nodeType || (triggerNode as any).type;
-  let triggerType: "webhook" | "google_forms" = "webhook";
-  if (nodeType?.includes("google_forms")) {
-    triggerType = "google_forms";
+  const triggerType = "webhook" as const;
+
+  // Google trigger nodes still need a valid connection for schema/field lookup,
+  // but execution itself is now always driven by the shared webhook endpoint.
+  const triggerConfig = (triggerNode as any).config || {};
+  const connectionId = triggerConfig.connectionId as string | undefined;
+  if (connectionId) {
+    const connection = await prisma.connection.findUnique({ where: { id: connectionId } });
+    const grantedScope = (connection?.metadata as any)?.scope as string | undefined;
+    const isGoogleFormTrigger = String((triggerNode as any).type || "").includes("google_forms");
+    const isGoogleSheetTrigger = String((triggerNode as any).type || "").includes("google_sheets");
+
+    if (isGoogleFormTrigger) {
+      const requiredScopes = [
+        "https://www.googleapis.com/auth/drive.readonly",
+        "https://www.googleapis.com/auth/forms.body.readonly",
+        "https://www.googleapis.com/auth/forms.responses.readonly",
+      ];
+      if (!connection || !connectionHasScopes(grantedScope, requiredScopes)) {
+        throw new WorkflowActivationError(
+          "Reconnect Google with Drive + Forms permissions before activating",
+          { requiredScopes }
+        );
+      }
+    }
+
+    if (isGoogleSheetTrigger) {
+      const requiredScopes = ["https://www.googleapis.com/auth/spreadsheets.readonly"];
+      if (!connection || !connectionHasScopes(grantedScope, requiredScopes)) {
+        throw new WorkflowActivationError(
+          "Reconnect Google with Sheets permissions before activating",
+          { requiredScopes }
+        );
+      }
+    }
   }
 
   let subscription;
-  if (triggerType === "webhook") {
-    try {
-      subscription = await createTriggerSubscription({
-        workflowId,
-        nodeId: triggerNode.id,
-        triggerType,
-      });
-    } catch (error) {
-      throw new WorkflowActivationError(
-        `Failed to create trigger subscription: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-        { workflowId, subscriptionError: error }
-      );
-    }
-  } else {
-    // Google Forms trigger: ensure a polling trigger record exists and seeded
-    const formId = (triggerNode as any).config?.formId;
-    const connectionId = (triggerNode as any).config?.connectionId;
-    if (!formId || !connectionId) {
-      throw new WorkflowActivationError("Google Forms trigger requires formId and connectionId in config", { triggerNode });
-    }
-
-    // UX guardrail: verify Google scopes before allowing activation
-    const connection = await prisma.connection.findUnique({ where: { id: connectionId } });
-    const grantedScope = (connection?.metadata as any)?.scope as string | undefined;
-    const requiredScopes = [
-      "https://www.googleapis.com/auth/drive.readonly",
-      "https://www.googleapis.com/auth/forms.body.readonly",
-      "https://www.googleapis.com/auth/forms.responses.readonly",
-    ];
-    if (!connection || !connectionHasScopes(grantedScope, requiredScopes)) {
-      throw new WorkflowActivationError(
-        "Reconnect Google with Drive + Forms permissions before activating",
-        { requiredScopes }
-      );
-    }
-
-    const latestResponseId = await getLatestResponseId(connectionId, formId);
-
-    await prisma.googleFormsTrigger.upsert({
-      where: { workflowId },
-      update: {
-        formId,
-        connectionId,
-        lastResponseId: latestResponseId,
-        lastCheckedAt: new Date(),
-        active: true,
-      },
-      create: {
-        triggerId: generateRandomId(),
-        userId: workflow.userId,
-        workflowId,
-        formId,
-        connectionId,
-        lastResponseId: latestResponseId,
-        lastCheckedAt: new Date(),
-        active: true,
-      },
+  try {
+    subscription = await createTriggerSubscription({
+      workflowId,
+      nodeId: triggerNode.id,
+      triggerType,
     });
+  } catch (error) {
+    throw new WorkflowActivationError(
+      `Failed to create trigger subscription: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      { workflowId, subscriptionError: error }
+    );
   }
 
   // ============================================================================
@@ -297,12 +278,6 @@ export async function deactivateWorkflow(
   for (const subscription of subscriptions) {
     await deleteTriggerSubscription(subscription.id);
   }
-
-  // Also disable Google Forms polling trigger if present
-  await prisma.googleFormsTrigger.updateMany({
-    where: { workflowId },
-    data: { active: false, lastCheckedAt: new Date() },
-  });
 
   // ============================================================================
   // STEP 2: Update workflow status

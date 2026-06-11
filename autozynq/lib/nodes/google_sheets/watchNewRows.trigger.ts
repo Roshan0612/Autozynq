@@ -25,7 +25,7 @@ export const googleSheetsWatchNewRowsTrigger: AutomationNode = {
   type: "google_sheets.trigger.watchNewRows",
   category: "trigger",
   displayName: "Google Sheets – Watch New Rows",
-  description: "Poll a Google Sheet and emit one bundle per new row.",
+  description: "Receive new Google Sheet rows via webhook.",
   app: "Google Sheets",
   icon: "table",
   configSchema,
@@ -39,12 +39,10 @@ export const googleSheetsWatchNewRowsTrigger: AutomationNode = {
     { key: "sheetName", label: "Sheet Name", type: "string" },
   ],
   async run(ctx: NodeContext) {
-    // For polling triggers, the poller passes a fully-formed payload.
-    // This node validates and returns it as-is. No test mode, no synthetic data.
-    const payload = ctx.input as unknown;
+    const payload = ctx.input as Record<string, unknown>;
     const parsed = outputSchema.safeParse(payload);
     if (!parsed.success) {
-      throw new Error("Invalid Google Sheets trigger payload");
+      throw new Error("Trigger has not received a real Google Sheets row event yet");
     }
     return parsed.data;
   },

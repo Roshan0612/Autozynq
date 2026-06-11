@@ -16,12 +16,13 @@ const outputSchema = z.object({
 export const googleFormsGetResponseAction: AutomationNode = {
   type: "google_forms.action.getResponse",
   category: "action",
+  app: "Google Forms",
   displayName: "Google Forms – Get Response",
   description: "Fetch a single response by responseId.",
   configSchema,
   outputSchema,
   outputFields: [],
-  requiresConnection: false,
+  requiresConnection: true,
   async run(ctx: NodeContext) {
     const cfg = configSchema.parse(ctx.config);
     return {

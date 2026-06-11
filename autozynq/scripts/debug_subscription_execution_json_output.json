@@ -1,0 +1,146 @@
+[
+  {
+    "id": "cmpy2vtix0018eumjgm49nb9j",
+    "workflowId": "cmpy02seo000teumj175esnfv",
+    "userId": "cmpy02g27000peumj6fbs550n",
+    "status": "FAILED",
+    "startedAt": "2026-06-03T13:04:22.318Z",
+    "finishedAt": "2026-06-03T13:04:25.124Z",
+    "result": null,
+    "error": {
+      "stack": "Error: Trigger has not received a real Google Form submission yet\n    at Object.run (webpack-internal:///(rsc)/./lib/nodes/google_forms/newResponse.trigger.ts:113:19)\n    at runWorkflow (webpack-internal:///(rsc)/./lib/execution/engine.ts:263:46)\n    at async POST (webpack-internal:///(rsc)/./app/api/workflows/[id]/execute/route.ts:72:29)\n    at async AppRouteRouteModule.do (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\compiled\\next-server\\app-route.runtime.dev.js:5:38696)\n    at async AppRouteRouteModule.handle (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\compiled\\next-server\\app-route.runtime.dev.js:5:45978)\n    at async responseGenerator (webpack-internal:///(rsc)/./node_modules/next/dist/build/webpack/loaders/next-app-loader/index.js?name=app%2Fapi%2Fworkflows%2F%5Bid%5D%2Fexecute%2Froute&page=%2Fapi%2Fworkflows%2F%5Bid%5D%2Fexecute%2Froute&appPaths=&pagePath=private-next-app-dir%2Fapi%2Fworkflows%2F%5Bid%5D%2Fexecute%2Froute.ts&appDir=C%3A%5CUsers%5CRoshan%5CDownloads%5CallAboutCoding%5CAutozynq%5Cautozynq%5Capp&pageExtensions=tsx&pageExtensions=ts&pageExtensions=jsx&pageExtensions=js&rootDir=C%3A%5CUsers%5CRoshan%5CDownloads%5CallAboutCoding%5CAutozynq%5Cautozynq&isDev=true&tsconfigPath=tsconfig.json&basePath=&assetPrefix=&nextConfigOutput=&preferredRegion=&middlewareConfig=e30%3D&isGlobalNotFoundEnabled=!:203:38)\n    at async AppRouteRouteModule.handleResponse (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\compiled\\next-server\\app-route.runtime.dev.js:1:187565)\n    at async handleResponse (webpack-internal:///(rsc)/./node_modules/next/dist/build/webpack/loaders/next-app-loader/index.js?name=app%2Fapi%2Fworkflows%2F%5Bid%5D%2Fexecute%2Froute&page=%2Fapi%2Fworkflows%2F%5Bid%5D%2Fexecute%2Froute&appPaths=&pagePath=private-next-app-dir%2Fapi%2Fworkflows%2F%5Bid%5D%2Fexecute%2Froute.ts&appDir=C%3A%5CUsers%5CRoshan%5CDownloads%5CallAboutCoding%5CAutozynq%5Cautozynq%5Capp&pageExtensions=tsx&pageExtensions=ts&pageExtensions=jsx&pageExtensions=js&rootDir=C%3A%5CUsers%5CRoshan%5CDownloads%5CallAboutCoding%5CAutozynq%5Cautozynq&isDev=true&tsconfigPath=tsconfig.json&basePath=&assetPrefix=&nextConfigOutput=&preferredRegion=&middlewareConfig=e30%3D&isGlobalNotFoundEnabled=!:265:32)\n    at async handler (webpack-internal:///(rsc)/./node_modules/next/dist/build/webpack/loaders/next-app-loader/index.js?name=app%2Fapi%2Fworkflows%2F%5Bid%5D%2Fexecute%2Froute&page=%2Fapi%2Fworkflows%2F%5Bid%5D%2Fexecute%2Froute&appPaths=&pagePath=private-next-app-dir%2Fapi%2Fworkflows%2F%5Bid%5D%2Fexecute%2Froute.ts&appDir=C%3A%5CUsers%5CRoshan%5CDownloads%5CallAboutCoding%5CAutozynq%5Cautozynq%5Capp&pageExtensions=tsx&pageExtensions=ts&pageExtensions=jsx&pageExtensions=js&rootDir=C%3A%5CUsers%5CRoshan%5CDownloads%5CallAboutCoding%5CAutozynq%5Cautozynq&isDev=true&tsconfigPath=tsconfig.json&basePath=&assetPrefix=&nextConfigOutput=&preferredRegion=&middlewareConfig=e30%3D&isGlobalNotFoundEnabled=!:317:13)\n    at async DevServer.renderToResponseWithComponentsImpl (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\server\\base-server.js:1422:9)\n    at async DevServer.renderPageComponent (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\server\\base-server.js:1474:24)\n    at async DevServer.renderToResponseImpl (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\server\\base-server.js:1514:32)\n    at async DevServer.pipeImpl (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\server\\base-server.js:1025:25)\n    at async NextNodeServer.handleCatchallRenderRequest (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\server\\next-server.js:393:17)\n    at async DevServer.handleRequestImpl (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\server\\base-server.js:916:17)\n    at async C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\server\\dev\\next-dev-server.js:399:20\n    at async Span.traceAsyncFn (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\trace\\trace.js:157:20)\n    at async DevServer.handleRequest (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\server\\dev\\next-dev-server.js:395:24)\n    at async invokeRender (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\server\\lib\\router-server.js:240:21)\n    at async handleRequest (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\server\\lib\\router-server.js:437:24)\n    at async requestHandlerImpl (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\server\\lib\\router-server.js:485:13)\n    at async Server.requestListener (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\server\\lib\\start-server.js:226:13)",
+      "nodeId": "node_jl4qfY",
+      "message": "Trigger has not received a real Google Form submission yet",
+      "stepIndex": 0
+    },
+    "steps": [
+      {
+        "error": "Trigger has not received a real Google Form submission yet",
+        "nodeId": "node_jl4qfY",
+        "status": "failed",
+        "nodeType": "google_forms.trigger.newResponse",
+        "startedAt": "2026-06-03T13:04:24.407Z",
+        "finishedAt": "2026-06-03T13:04:24.847Z"
+      }
+    ],
+    "idempotencyKey": null,
+    "abortedAt": null,
+    "abortedBy": null,
+    "abortReason": null
+  },
+  {
+    "id": "cmpy1w3pl0015eumjp5odb5tb",
+    "workflowId": "cmpy02seo000teumj175esnfv",
+    "userId": "cmpy02g27000peumj6fbs550n",
+    "status": "SUCCESS",
+    "startedAt": "2026-06-03T12:36:35.887Z",
+    "finishedAt": "2026-06-03T12:36:48.702Z",
+    "result": {
+      "values": {
+        "Name": " Roshan",
+        "Email": "roshan@example.com",
+        "Notes": "Debug run",
+        "Company": "Autozynq",
+        "Service Needed": "Testing"
+      },
+      "sheetId": 0,
+      "rowNumber": 2,
+      "sheetName": "Sheet1",
+      "spreadsheetId": "1fcYJpe9G1OfqUkp1CclnPOh3JX9GwMpmXSs09KnS1v8"
+    },
+    "error": null,
+    "steps": [
+      {
+        "nodeId": "node_jl4qfY",
+        "output": {
+          "formId": "1flU_Ss7XKl-7gFdwKQ0FWKxtI1ZVlVt3dLq-W-FgrQk",
+          "answers": {
+            "Name": "Roshan",
+            "Email": "roshan@example.com",
+            "Notes": "Debug run",
+            "Company": "Autozynq",
+            "Service Needed": "Testing"
+          },
+          "responseId": "resp-debug-2",
+          "submittedAt": "2026-06-03T12:36:20.298Z",
+          "respondentEmail": "tester@example.com"
+        },
+        "status": "success",
+        "nodeType": "google_forms.trigger.newResponse",
+        "startedAt": "2026-06-03T12:36:44.182Z",
+        "finishedAt": "2026-06-03T12:36:45.010Z"
+      },
+      {
+        "nodeId": "node_NSZWEE",
+        "output": {
+          "values": {
+            "Name": " Roshan",
+            "Email": "roshan@example.com",
+            "Notes": "Debug run",
+            "Company": "Autozynq",
+            "Service Needed": "Testing"
+          },
+          "sheetId": 0,
+          "rowNumber": 2,
+          "sheetName": "Sheet1",
+          "spreadsheetId": "1fcYJpe9G1OfqUkp1CclnPOh3JX9GwMpmXSs09KnS1v8"
+        },
+        "status": "success",
+        "nodeType": "google_sheets.action.createRow",
+        "startedAt": "2026-06-03T12:36:45.615Z",
+        "finishedAt": "2026-06-03T12:36:48.492Z"
+      }
+    ],
+    "idempotencyKey": "cmpy02seo000teumj175esnfv:node_THAtO4:h213tlc660prkuoi:4dc1871b6fd5eda2",
+    "abortedAt": null,
+    "abortedBy": null,
+    "abortReason": null
+  },
+  {
+    "id": "cmpy1jiqu0012eumjzta5yybj",
+    "workflowId": "cmpy02seo000teumj175esnfv",
+    "userId": "cmpy02g27000peumj6fbs550n",
+    "status": "FAILED",
+    "startedAt": "2026-06-03T12:26:48.759Z",
+    "finishedAt": "2026-06-03T12:26:53.537Z",
+    "result": null,
+    "error": {
+      "stack": "Error: Trigger has not received a real Google Form submission yet\n    at Object.run (webpack-internal:///(rsc)/./lib/nodes/google_forms/newResponse.trigger.ts:113:19)\n    at runWorkflow (webpack-internal:///(rsc)/./lib/execution/engine.ts:263:46)\n    at async POST (webpack-internal:///(rsc)/./app/api/workflows/[id]/execute/route.ts:72:29)\n    at async AppRouteRouteModule.do (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\compiled\\next-server\\app-route.runtime.dev.js:5:38696)\n    at async AppRouteRouteModule.handle (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\compiled\\next-server\\app-route.runtime.dev.js:5:45978)\n    at async responseGenerator (webpack-internal:///(rsc)/./node_modules/next/dist/build/webpack/loaders/next-app-loader/index.js?name=app%2Fapi%2Fworkflows%2F%5Bid%5D%2Fexecute%2Froute&page=%2Fapi%2Fworkflows%2F%5Bid%5D%2Fexecute%2Froute&appPaths=&pagePath=private-next-app-dir%2Fapi%2Fworkflows%2F%5Bid%5D%2Fexecute%2Froute.ts&appDir=C%3A%5CUsers%5CRoshan%5CDownloads%5CallAboutCoding%5CAutozynq%5Cautozynq%5Capp&pageExtensions=tsx&pageExtensions=ts&pageExtensions=jsx&pageExtensions=js&rootDir=C%3A%5CUsers%5CRoshan%5CDownloads%5CallAboutCoding%5CAutozynq%5Cautozynq&isDev=true&tsconfigPath=tsconfig.json&basePath=&assetPrefix=&nextConfigOutput=&preferredRegion=&middlewareConfig=e30%3D&isGlobalNotFoundEnabled=!:203:38)\n    at async AppRouteRouteModule.handleResponse (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\compiled\\next-server\\app-route.runtime.dev.js:1:187565)\n    at async handleResponse (webpack-internal:///(rsc)/./node_modules/next/dist/build/webpack/loaders/next-app-loader/index.js?name=app%2Fapi%2Fworkflows%2F%5Bid%5D%2Fexecute%2Froute&page=%2Fapi%2Fworkflows%2F%5Bid%5D%2Fexecute%2Froute&appPaths=&pagePath=private-next-app-dir%2Fapi%2Fworkflows%2F%5Bid%5D%2Fexecute%2Froute.ts&appDir=C%3A%5CUsers%5CRoshan%5CDownloads%5CallAboutCoding%5CAutozynq%5Cautozynq%5Capp&pageExtensions=tsx&pageExtensions=ts&pageExtensions=jsx&pageExtensions=js&rootDir=C%3A%5CUsers%5CRoshan%5CDownloads%5CallAboutCoding%5CAutozynq%5Cautozynq&isDev=true&tsconfigPath=tsconfig.json&basePath=&assetPrefix=&nextConfigOutput=&preferredRegion=&middlewareConfig=e30%3D&isGlobalNotFoundEnabled=!:265:32)\n    at async handler (webpack-internal:///(rsc)/./node_modules/next/dist/build/webpack/loaders/next-app-loader/index.js?name=app%2Fapi%2Fworkflows%2F%5Bid%5D%2Fexecute%2Froute&page=%2Fapi%2Fworkflows%2F%5Bid%5D%2Fexecute%2Froute&appPaths=&pagePath=private-next-app-dir%2Fapi%2Fworkflows%2F%5Bid%5D%2Fexecute%2Froute.ts&appDir=C%3A%5CUsers%5CRoshan%5CDownloads%5CallAboutCoding%5CAutozynq%5Cautozynq%5Capp&pageExtensions=tsx&pageExtensions=ts&pageExtensions=jsx&pageExtensions=js&rootDir=C%3A%5CUsers%5CRoshan%5CDownloads%5CallAboutCoding%5CAutozynq%5Cautozynq&isDev=true&tsconfigPath=tsconfig.json&basePath=&assetPrefix=&nextConfigOutput=&preferredRegion=&middlewareConfig=e30%3D&isGlobalNotFoundEnabled=!:317:13)\n    at async DevServer.renderToResponseWithComponentsImpl (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\server\\base-server.js:1422:9)\n    at async DevServer.renderPageComponent (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\server\\base-server.js:1474:24)\n    at async DevServer.renderToResponseImpl (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\server\\base-server.js:1514:32)\n    at async DevServer.pipeImpl (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\server\\base-server.js:1025:25)\n    at async NextNodeServer.handleCatchallRenderRequest (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\server\\next-server.js:393:17)\n    at async DevServer.handleRequestImpl (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\server\\base-server.js:916:17)\n    at async C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\server\\dev\\next-dev-server.js:399:20\n    at async Span.traceAsyncFn (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\trace\\trace.js:157:20)\n    at async DevServer.handleRequest (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\server\\dev\\next-dev-server.js:395:24)\n    at async invokeRender (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\server\\lib\\router-server.js:240:21)\n    at async handleRequest (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\server\\lib\\router-server.js:437:24)\n    at async requestHandlerImpl (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\server\\lib\\router-server.js:485:13)\n    at async Server.requestListener (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\server\\lib\\start-server.js:226:13)",
+      "nodeId": "node_jl4qfY",
+      "message": "Trigger has not received a real Google Form submission yet",
+      "stepIndex": 0
+    },
+    "steps": [
+      {
+        "error": "Trigger has not received a real Google Form submission yet",
+        "nodeId": "node_jl4qfY",
+        "status": "failed",
+        "nodeType": "google_forms.trigger.newResponse",
+        "startedAt": "2026-06-03T12:26:52.788Z",
+        "finishedAt": "2026-06-03T12:26:53.327Z"
+      }
+    ],
+    "idempotencyKey": null,
+    "abortedAt": null,
+    "abortedBy": null,
+    "abortReason": null
+  },
+  {
+    "id": "cmpy1f2xr000zeumj015crr06",
+    "workflowId": "cmpy02seo000teumj175esnfv",
+    "userId": "cmpy02g27000peumj6fbs550n",
+    "status": "FAILED",
+    "startedAt": "2026-06-03T12:23:21.741Z",
+    "finishedAt": "2026-06-03T12:23:24.509Z",
+    "result": null,
+    "error": {
+      "stack": "Error: Multiple trigger nodes found: node_THAtO4, node_O-euE3. Workflow must have exactly one trigger node (entry point).\n    at buildExecutionGraph (webpack-internal:///(rsc)/./lib/execution/engine.ts:441:15)\n    at runWorkflow (webpack-internal:///(rsc)/./lib/execution/engine.ts:142:23)\n    at async POST (webpack-internal:///(rsc)/./app/api/workflows/[id]/execute/route.ts:72:29)\n    at async AppRouteRouteModule.do (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\compiled\\next-server\\app-route.runtime.dev.js:5:38696)\n    at async AppRouteRouteModule.handle (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\compiled\\next-server\\app-route.runtime.dev.js:5:45978)\n    at async responseGenerator (webpack-internal:///(rsc)/./node_modules/next/dist/build/webpack/loaders/next-app-loader/index.js?name=app%2Fapi%2Fworkflows%2F%5Bid%5D%2Fexecute%2Froute&page=%2Fapi%2Fworkflows%2F%5Bid%5D%2Fexecute%2Froute&appPaths=&pagePath=private-next-app-dir%2Fapi%2Fworkflows%2F%5Bid%5D%2Fexecute%2Froute.ts&appDir=C%3A%5CUsers%5CRoshan%5CDownloads%5CallAboutCoding%5CAutozynq%5Cautozynq%5Capp&pageExtensions=tsx&pageExtensions=ts&pageExtensions=jsx&pageExtensions=js&rootDir=C%3A%5CUsers%5CRoshan%5CDownloads%5CallAboutCoding%5CAutozynq%5Cautozynq&isDev=true&tsconfigPath=tsconfig.json&basePath=&assetPrefix=&nextConfigOutput=&preferredRegion=&middlewareConfig=e30%3D&isGlobalNotFoundEnabled=!:203:38)\n    at async AppRouteRouteModule.handleResponse (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\compiled\\next-server\\app-route.runtime.dev.js:1:187565)\n    at async handleResponse (webpack-internal:///(rsc)/./node_modules/next/dist/build/webpack/loaders/next-app-loader/index.js?name=app%2Fapi%2Fworkflows%2F%5Bid%5D%2Fexecute%2Froute&page=%2Fapi%2Fworkflows%2F%5Bid%5D%2Fexecute%2Froute&appPaths=&pagePath=private-next-app-dir%2Fapi%2Fworkflows%2F%5Bid%5D%2Fexecute%2Froute.ts&appDir=C%3A%5CUsers%5CRoshan%5CDownloads%5CallAboutCoding%5CAutozynq%5Cautozynq%5Capp&pageExtensions=tsx&pageExtensions=ts&pageExtensions=jsx&pageExtensions=js&rootDir=C%3A%5CUsers%5CRoshan%5CDownloads%5CallAboutCoding%5CAutozynq%5Cautozynq&isDev=true&tsconfigPath=tsconfig.json&basePath=&assetPrefix=&nextConfigOutput=&preferredRegion=&middlewareConfig=e30%3D&isGlobalNotFoundEnabled=!:265:32)\n    at async handler (webpack-internal:///(rsc)/./node_modules/next/dist/build/webpack/loaders/next-app-loader/index.js?name=app%2Fapi%2Fworkflows%2F%5Bid%5D%2Fexecute%2Froute&page=%2Fapi%2Fworkflows%2F%5Bid%5D%2Fexecute%2Froute&appPaths=&pagePath=private-next-app-dir%2Fapi%2Fworkflows%2F%5Bid%5D%2Fexecute%2Froute.ts&appDir=C%3A%5CUsers%5CRoshan%5CDownloads%5CallAboutCoding%5CAutozynq%5Cautozynq%5Capp&pageExtensions=tsx&pageExtensions=ts&pageExtensions=jsx&pageExtensions=js&rootDir=C%3A%5CUsers%5CRoshan%5CDownloads%5CallAboutCoding%5CAutozynq%5Cautozynq&isDev=true&tsconfigPath=tsconfig.json&basePath=&assetPrefix=&nextConfigOutput=&preferredRegion=&middlewareConfig=e30%3D&isGlobalNotFoundEnabled=!:317:13)\n    at async DevServer.renderToResponseWithComponentsImpl (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\server\\base-server.js:1422:9)\n    at async DevServer.renderPageComponent (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\server\\base-server.js:1474:24)\n    at async DevServer.renderToResponseImpl (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\server\\base-server.js:1514:32)\n    at async DevServer.pipeImpl (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\server\\base-server.js:1025:25)\n    at async NextNodeServer.handleCatchallRenderRequest (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\server\\next-server.js:393:17)\n    at async DevServer.handleRequestImpl (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\server\\base-server.js:916:17)\n    at async C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\server\\dev\\next-dev-server.js:399:20\n    at async Span.traceAsyncFn (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\trace\\trace.js:157:20)\n    at async DevServer.handleRequest (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\server\\dev\\next-dev-server.js:395:24)\n    at async invokeRender (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\server\\lib\\router-server.js:240:21)\n    at async handleRequest (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\server\\lib\\router-server.js:437:24)\n    at async requestHandlerImpl (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\server\\lib\\router-server.js:485:13)\n    at async Server.requestListener (C:\\Users\\Roshan\\Downloads\\allAboutCoding\\Autozynq\\autozynq\\node_modules\\next\\dist\\server\\lib\\start-server.js:226:13)",
+      "message": "Multiple trigger nodes found: node_THAtO4, node_O-euE3. Workflow must have exactly one trigger node (entry point)."
+    },
+    "steps": [],
+    "idempotencyKey": null,
+    "abortedAt": null,
+    "abortedBy": null,
+    "abortReason": null
+  }
+]

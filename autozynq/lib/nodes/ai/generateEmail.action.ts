@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { AutomationNode, NodeContext } from "../base";
 
-// Config for AI Generate Email (kept simple and mock-friendly)
+// Config for AI Generate Email (production)
 const configSchema = z.object({
   instructions: z
     .string()
@@ -34,7 +34,7 @@ export const generateEmailAction: AutomationNode = {
   type: "ai.action.generateEmail",
   category: "action",
   displayName: "AI Generate Email",
-  description: "Create a subject and body from prior step data (mock)",
+  description: "Create a subject and body from prior step data.",
   configSchema,
   outputSchema,
   outputFields: [],

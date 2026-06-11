@@ -144,31 +144,14 @@ export const gmailSendEmailAction: AutomationNode = {
   ],
 
   async run(ctx: NodeContext) {
-    const executionMode = ctx.executionMode || "live";
-    const isTest = executionMode === "test";
     // Parse config defensively to support manual Execute with incomplete templates
     const cfgResult = configSchema.safeParse(ctx.config);
-    let cfg: Config;
     if (!cfgResult.success) {
-      if (!isTest) {
-        throw new Error(
-          `[Gmail] Config invalid in live mode: ${JSON.stringify(cfgResult.error?.errors || [])}`
-        );
-      }
-      console.warn("[Gmail] Config invalid - using test defaults for test execution", cfgResult.error?.errors);
-      const raw = (ctx.config || {}) as any;
-      cfg = {
-        connectionId: raw.connectionId || "",
-        to: raw.to || "test@example.com",
-        subject: raw.subject || "Test Email",
-        bodyHtml: raw.bodyHtml || "<p>This is a test email generated during manual execution.</p>",
-        cc: raw.cc,
-        bcc: raw.bcc,
-        attachments: raw.attachments,
-      } as Config;
-    } else {
-      cfg = cfgResult.data as Config;
+      throw new Error(
+        `[Gmail] Config invalid: ${JSON.stringify(cfgResult.error?.errors || [])}`
+      );
     }
+    const cfg: Config = cfgResult.data as Config;
 
     // Get Gmail connection
     const connection = await getConnection(cfg.connectionId);
@@ -206,21 +189,9 @@ export const gmailSendEmailAction: AutomationNode = {
           : `Gmail node failed: ${field} resolved empty`
       );
 
-    if (!to || !to.trim()) {
-      if (!isTest) throw missingError("to", toMissing || undefined);
-      to = "test@example.com";
-      console.warn("[Gmail] 'to' resolved empty - using test@example.com for test execution");
-    }
-
-    if (!subject || !subject.trim()) {
-      if (!isTest) throw missingError("subject", subjectMissing || undefined);
-      subject = "New Form Submission (Test)";
-    }
-
-    if (!bodyHtml || !bodyHtml.trim()) {
-      if (!isTest) throw missingError("bodyHtml", bodyMissing || undefined);
-      bodyHtml = "<h2>New Form Submission</h2><p>This is a test message sent during manual execution.</p>";
-    }
+    if (!to || !to.trim()) throw missingError("to", toMissing || undefined);
+    if (!subject || !subject.trim()) throw missingError("subject", subjectMissing || undefined);
+    if (!bodyHtml || !bodyHtml.trim()) throw missingError("bodyHtml", bodyMissing || undefined);
 
     // Validate resolved values
     if (!to || !to.includes("@")) {

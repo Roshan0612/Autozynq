@@ -37,6 +37,7 @@ const outputSchema = z.object({
 export const googleFormsNewResponseTrigger: AutomationNode = {
   type: "google_forms.trigger.newResponse",
   category: "trigger",
+  app: "Google Forms",
   displayName: "Google Forms – New Response",
   description: "Trigger on new Google Form responses",
   configSchema,
@@ -114,48 +115,11 @@ export const googleFormsNewResponseTrigger: AutomationNode = {
     }
   },
 
-  /**
-   * Process webhook payload from Google Apps Script
-   * 
-   * Payload format:
-   * {
-   *   eventId: string,
-   *   formId: string,
-   *   responseId: string,
-   *   answers: { "Question Title": "answer", ... },
-   *   submittedAt: string (ISO 8601),
-   *   respondentEmail?: string
-   * }
-   */
   async run(ctx: NodeContext) {
-    // Input is the webhook payload
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const payload = (ctx.input || {}) as any;
-    // Parse config defensively; config may be absent during manual Execute
+    const payload = (ctx.input || {}) as Record<string, unknown>;
     const cfgResult = configSchema.safeParse(ctx.config);
     const cfg: Partial<Config> = cfgResult.success ? cfgResult.data : {};
-    const executionMode = ctx.executionMode || "live";
-    const isTest = executionMode === "test" || payload.__testTrigger === true;
-
-    // If manually testing (no input), return test data
     const hasRealPayload = Boolean(payload.responseId && payload.answers);
-
-    // If manually testing via explicit Test Trigger, return sample payload
-    if (!hasRealPayload && isTest) {
-      console.warn("[Google Forms Trigger] Test mode - returning sample payload");
-      return {
-        eventId: "test-event-id",
-        formId: payload.formId || (cfg.formId ?? "test-form-id"),
-        responseId: "test-response-id",
-        submittedAt: new Date().toISOString(),
-        respondentEmail: "test@example.com",
-        answers: {
-          email: "test@example.com",
-          name: "Test User",
-          message: "This is a test form submission",
-        },
-      };
-    }
 
     if (!hasRealPayload) {
       throw new Error("Trigger has not received a real Google Form submission yet");
@@ -163,13 +127,13 @@ export const googleFormsNewResponseTrigger: AutomationNode = {
 
     // Return normalized output matching template syntax: {{steps.trigger1.answers.fieldName}}
     return {
-      eventId: payload.eventId,
-      formId: payload.formId || (cfg.formId ?? "unknown-form-id"),
-      responseId: payload.responseId,
-      submittedAt: payload.submittedAt || new Date().toISOString(),
-      respondentEmail: payload.respondentEmail || null,
+      eventId: typeof payload.eventId === "string" ? payload.eventId : undefined,
+      formId: typeof payload.formId === "string" ? payload.formId : (cfg.formId ?? "unknown-form-id"),
+      responseId: String(payload.responseId),
+      submittedAt: typeof payload.submittedAt === "string" ? payload.submittedAt : new Date().toISOString(),
+      respondentEmail: typeof payload.respondentEmail === "string" ? payload.respondentEmail : null,
       // Flatten answers for template resolution
-      answers: payload.answers || {},
+      answers: (payload.answers as Record<string, unknown>) || {},
     };
   },
 };

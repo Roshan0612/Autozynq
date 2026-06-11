@@ -1,28 +1,28 @@
-# Google Forms Polling Worker - Production Deployment Guide
+# Google Forms Webhook-First Deployment Guide
 
 ## ✅ Implementation Complete
 
-Your Google Forms integration is now production-ready with automatic polling.
+Your Google Forms and Google Sheets integrations are now production-ready with webhook delivery. Google Drive can use the bridge script when a direct event source is not available.
 
 ---
 
 ## Architecture Overview
 
 ```
-User connects Google → Selects Form → Activates Workflow
+User connects Google → Selects trigger node → Activates workflow
                                 ↓
-                    GoogleFormsTrigger created (seeded)
+    Webhook subscription created
                                 ↓
-            Polling Worker runs every 2-5 minutes
+   Apps Script or external sender posts event
                                 ↓
-                    Fetches new responses via API
+         Webhook verifies signature
                                 ↓
-                Executes workflow with idempotency
+      Execution engine starts idempotent run
                                 ↓
-                        Gmail sends email
+        Downstream actions execute
 ```
 
-**No Google Apps Script. No manual setup. Fully automatic.**
+**Forms and Sheets are webhook-first. Drive uses the bridge when needed.**
 
 ---
 
@@ -53,27 +53,24 @@ npm run dev
 # Starts on http://localhost:3001
 ```
 
-### 4. Run Polling Worker (Manual)
+### 4. Run the Webhook Test Harness
 ```bash
-npm run poll:google-forms
-# Runs once, then exits
+npm run test:webhook -- http://localhost:3000/api/webhooks/<triggerPath> '{"id":"evt1","fileId":"abc","fileName":"demo.txt"}'
 ```
 
 ### 5. Test End-to-End
 1. **Connect Google**: Sign in with OAuth
-2. **Create Workflow**: Add Google Forms trigger + Gmail action
-3. **Select Form**: Pick from dropdown (no manual IDs)
-4. **Activate**: Click "Activate Workflow"
-   - Creates `GoogleFormsTrigger` record
-   - Seeds `lastResponseId` with latest response
-5. **Submit Form**: Fill out the Google Form
-6. **Run Poller**: `npm run poll:google-forms`
-7. **Check Execution**: View workflow executions
-8. **Verify Email**: Check Gmail inbox
+2. **Create Workflow**: Add Google Forms, Google Sheets, or Google Drive trigger plus an action
+3. **Activate**: Click "Activate Workflow"
+  - Creates a webhook subscription for the trigger node
+4. **Send Event**: Submit the form, edit the sheet, or let the Drive bridge forward the file event
+5. **Check Execution**: View workflow executions and downstream action results
 
 ---
 
 ## Production Deployment
+
+The polling worker sections below are legacy fallback notes. For new deployments, prefer webhook delivery plus the Apps Script bridge.
 
 ### Option 1: Cron Job (Simple)
 
@@ -385,13 +382,15 @@ pm2 logs google-forms-poller
 | `pm2 restart google-forms-poller` | Restart poller |
 | `pm2 stop google-forms-poller` | Stop poller |
 | `npx prisma studio` | View database |
+| `npm run test:webhook -- <url> <json>` | Send a signed test webhook |
 
 ---
 
 ## Status: Production-Ready ✅
 
-- ✅ No Google Apps Script required
-- ✅ Automatic polling every 2-5 minutes
+- ✅ Webhook-first Google Forms and Sheets triggers
+- ✅ Optional Google Apps Script bridge for event forwarding
+- ✅ Drive bridge available when a direct event source is not available
 - ✅ Idempotency guaranteed
 - ✅ Token auto-refresh
 - ✅ Error logging
@@ -399,4 +398,4 @@ pm2 logs google-forms-poller
 - ✅ Workflow activation wired
 - ✅ Scalable architecture
 
-**Next steps:** Deploy to production, set up monitoring, enjoy Zapier-style automation!
+**Next steps:** Set `WEBHOOK_SECRET`, deploy the Apps Script bridge where needed, and activate workflows from the UI.

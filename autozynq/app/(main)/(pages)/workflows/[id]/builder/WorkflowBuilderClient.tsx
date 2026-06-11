@@ -1375,12 +1375,55 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
   }, [setEdges]);
 
   const updateNodeConfig = useCallback((nodeId: string, config: Record<string, unknown>) => {
+    // If updating a Google Sheets create/update node, allow users to type plain field
+    // names (e.g. "Name") and convert them to template refs like
+    // {{steps.<triggerNodeId>.answers.Name}} using the first Google Forms trigger node.
     setNodes((nds) =>
-      nds.map((n) =>
-        n.id === nodeId
-          ? { ...n, data: { ...n.data, config } }
-          : n
-      )
+      nds.map((n) => {
+        if (n.id !== nodeId) return n;
+
+        const nodeType = String(n.data.nodeType || "");
+        const isSheetsCreate = nodeType === "google_sheets.action.createRow";
+        const isSheetsUpdate = nodeType === "google_sheets.action.updateRow";
+
+        if (isSheetsCreate || isSheetsUpdate) {
+          // find a google forms trigger node in the current flow
+          const trigger = nds.find((x) => String(x.data.nodeType || "").startsWith("google_forms.trigger"));
+          const triggerId = trigger?.id;
+
+          const newConfig = { ...config };
+          const mapKey = isSheetsCreate ? "columnValues" : "values";
+          const rawMap = (config as Record<string, any>)[mapKey] as Record<string, unknown> | undefined;
+
+          if (rawMap && triggerId) {
+            const converted: Record<string, string> = {};
+            for (const [col, val] of Object.entries(rawMap)) {
+              if (typeof val === "string") {
+                const v = val.trim();
+                // if user already provided a template or an explicit expression, keep it
+                if (v.includes("{{") && v.includes("}}")) {
+                  converted[col] = v;
+                } else if (v === "") {
+                  converted[col] = "";
+                } else {
+                  // treat plain text as a field name from the form answers
+                  const field = v.replace(/\s+/g, " ");
+                  converted[col] = `{{steps.${triggerId}.answers.${field}}}`;
+                }
+              } else if (val == null) {
+                converted[col] = "";
+              } else {
+                converted[col] = String(val);
+              }
+            }
+            newConfig[mapKey] = converted;
+          }
+
+          return { ...n, data: { ...n.data, config: newConfig } };
+        }
+
+        return { ...n, data: { ...n.data, config } };
+      })
     );
   }, [setNodes]);
 
@@ -1596,9 +1639,7 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
                 ? "Deactivate"
                 : "Activate"}
             </Button>
-            <Button variant="outline" onClick={() => handleExecute(true)} disabled={executing}>
-              {executing ? "Testing..." : "🧪 Test Trigger"}
-            </Button>
+            {/* Test Trigger button removed for production */}
             <Button variant="secondary" onClick={() => handleExecute(false)} disabled={executing}>
               {executing ? "Executing..." : "Execute Workflow"}
             </Button>

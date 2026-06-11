@@ -26,6 +26,10 @@ export function extractTemplateRefs(template: string): string[] {
   return refs;
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 /**
  * Resolve a single reference path like "steps.nodeId.field.nested"
  * Returns the value from previousOutputs or undefined if not found
@@ -55,28 +59,43 @@ export function resolveReference(
   const fieldPath = parts.slice(2); // ["field", "nested", "0"]
 
   const nodeOutput = previousOutputs[nodeId];
-  if (!nodeOutput) {
+  if (nodeOutput === undefined) {
     console.warn(
       `[TemplateResolver] Node output not found: ${nodeId}`
     );
     return undefined;
   }
 
-  // Traverse nested path
+  // Traverse nested path. Support keys that may contain dots by attempting
+  // a full remaining-path match if the current segment is not found directly.
   let value: unknown = nodeOutput;
-  for (const key of fieldPath) {
+  for (let index = 0; index < fieldPath.length; index++) {
+    const key = fieldPath[index];
+
     if (value === null || value === undefined) {
       return undefined;
     }
 
-    // Handle array access
     if (Array.isArray(value) && /^\d+$/.test(key)) {
       value = value[parseInt(key, 10)];
-    } else if (typeof value === "object") {
-      value = (value as Record<string, unknown>)[key];
-    } else {
-      return undefined;
+      continue;
     }
+
+    if (typeof value === "object") {
+      const record = value as Record<string, unknown>;
+      if (key in record) {
+        value = record[key];
+        continue;
+      }
+
+      const remainingKey = fieldPath.slice(index).join(".");
+      if (remainingKey in record) {
+        value = record[remainingKey];
+        return value;
+      }
+    }
+
+    return undefined;
   }
 
   return value;
@@ -111,8 +130,12 @@ export function resolveTemplate(
         ? JSON.stringify(value)
         : String(value);
 
-    // Replace all occurrences of this reference
-    resolved = resolved.replace(new RegExp(`\\{\\{${ref}\\}\\}`, "g"), stringValue);
+    // Replace all occurrences of this reference, escaping regex metacharacters
+    const escapedRef = escapeRegExp(ref);
+    resolved = resolved.replace(
+      new RegExp(`\{\{${escapedRef}\}\}`, "g"),
+      stringValue
+    );
   }
 
   return resolved;

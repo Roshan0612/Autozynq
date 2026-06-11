@@ -16,7 +16,7 @@ const outputSchema = z.object({
   timestamp: z.date(),
 });
 
-// Mock Gmail trigger that simulates new email events
+// Gmail trigger for new email events (production only)
 export const gmailNewEmailTrigger: AutomationNode = {
   type: "gmail.trigger.newEmail",
   category: "trigger",
@@ -25,22 +25,11 @@ export const gmailNewEmailTrigger: AutomationNode = {
   configSchema,
   outputSchema,
   outputFields: [],
-  requiresConnection: false,
+  requiresConnection: true,
 
   async run(ctx: NodeContext) {
     const config = configSchema.parse(ctx.config);
-
-    // In production, this would poll Gmail API or use webhooks
-    // For now, return mock data to validate the system
-    const mockEmail = {
-      id: `email_${Date.now()}`,
-      subject: `Test Email - ${config.label}`,
-      from: config.from || "sender@example.com",
-      body: "This is a mock email for testing the automation platform.",
-      timestamp: new Date(),
-    };
-
-    console.log(`[Gmail Trigger] Simulated new email:`, mockEmail);
-    return outputSchema.parse(mockEmail);
+    // TODO: Implement Gmail API polling or webhook logic here for production
+    throw new Error("Gmail trigger is not implemented in production mode.");
   },
 };

@@ -23,12 +23,13 @@ const outputSchema = z.object({
 export const googleFormsListResponsesAction: AutomationNode = {
   type: "google_forms.action.listResponses",
   category: "action",
+  app: "Google Forms",
   displayName: "Google Forms – List Responses",
   description: "List recent responses with optional since/limit.",
   configSchema,
   outputSchema,
   outputFields: [],
-  requiresConnection: false,
+  requiresConnection: true,
   async run(ctx: NodeContext) {
     const cfg = configSchema.parse(ctx.config);
     const total = cfg.limit ?? 2;

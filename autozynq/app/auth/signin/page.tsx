@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 function SignInContent() {
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
@@ -33,6 +34,22 @@ function SignInContent() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [githubLoading, setGithubLoading] = useState(false);
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6 text-center text-sm text-muted-foreground">
+            Loading sign in...
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setSignInError("");
@@ -43,6 +60,7 @@ function SignInContent() {
         email: signInEmail,
         password: signInPassword,
         redirect: false,
+        callbackUrl,
       });
 
       if (result?.error) {
@@ -100,6 +118,7 @@ function SignInContent() {
         email: signUpEmail,
         password: signUpPassword,
         redirect: false,
+        callbackUrl,
       });
 
       if (result?.ok) {

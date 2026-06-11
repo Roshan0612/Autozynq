@@ -37,15 +37,35 @@ import { WorkflowLockedError, LockAcquisitionFailedError } from "@/lib/execution
  * Uses HMAC SHA256 with shared secret
  */
 function verifySignature(payload: string, signature: string): boolean {
-  const secret = process.env.GOOGLE_FORMS_WEBHOOK_SECRET || "secret";
+  const secret =
+    process.env.WEBHOOK_SECRET ||
+    process.env.GOOGLE_FORMS_WEBHOOK_SECRET ||
+    "secret";
   const expectedSignature = crypto
     .createHmac("sha256", secret)
     .update(payload)
     .digest("hex");
-  return crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(expectedSignature)
-  );
+
+  if (!signature || signature.length !== expectedSignature.length) {
+    return false;
+  }
+
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(signature, "hex"),
+      Buffer.from(expectedSignature, "hex")
+    );
+  } catch {
+    // Fallback: compare raw utf8 buffers if hex decoding fails
+    try {
+      return crypto.timingSafeEqual(
+        Buffer.from(signature),
+        Buffer.from(expectedSignature)
+      );
+    } catch {
+      return false;
+    }
+  }
 }
 
 export async function POST(
@@ -56,98 +76,57 @@ export async function POST(
   let triggerId: string | undefined;
 
   try {
-    // ============================================================================
-    // STEP 1: Extract trigger ID (webhook path) from URL
-    // ============================================================================
-
-    const paramsData = await params;
-    triggerId = paramsData.triggerId;
+    const resolvedParams = await params;
+    triggerId = resolvedParams?.triggerId;
 
     if (!triggerId) {
-      return NextResponse.json(
-        { error: "Trigger ID is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Trigger ID is required" }, { status: 400 });
     }
 
-    // ============================================================================
     // STEP 2: Parse webhook payload (JSON)
-    // ============================================================================
-
-    let webhookPayload: unknown;
-    let rawPayload: string;
+    let webhookPayload: unknown = {};
+    let rawPayload = "{}";
     try {
       rawPayload = await req.text();
       webhookPayload = JSON.parse(rawPayload);
     } catch {
-      // Allow empty body
       webhookPayload = {};
       rawPayload = "{}";
     }
 
-    // Validate payload is an object
     if (typeof webhookPayload !== "object" || webhookPayload === null) {
       return NextResponse.json(
-        {
-          error: "Invalid payload: must be a JSON object",
-          triggerId,
-        },
+        { error: "Invalid payload: must be a JSON object", triggerId },
         { status: 400 }
       );
     }
 
-    // ============================================================================
-    // STEP 3: Verify webhook signature (for Google Forms)
-    // ============================================================================
-
-    const signature = req.headers.get("X-Signature");
+    // STEP 3: Verify webhook signature (optional)
+    const signature = req.headers.get("x-signature") || req.headers.get("X-Signature");
     if (signature) {
       try {
         if (!verifySignature(rawPayload, signature)) {
           console.warn(`[Webhook] Signature verification failed for trigger: ${triggerId}`);
-          return NextResponse.json(
-            { error: "Signature verification failed" },
-            { status: 401 }
-          );
+          return NextResponse.json({ error: "Signature verification failed" }, { status: 401 });
         }
         console.log(`[Webhook] Signature verified for trigger: ${triggerId}`);
-      } catch (error) {
-        console.warn(`[Webhook] Signature verification error: ${error}`);
-        // Continue without signature verification if something fails
+      } catch (err) {
+        console.warn(`[Webhook] Signature verification error: ${err}`);
       }
     }
 
     console.log(`[Webhook] Received event for trigger: ${triggerId}`);
-    console.log(
-      `[Webhook] Payload: ${JSON.stringify(webhookPayload).substring(0, 200)}...`
-    );
 
-    // ============================================================================
-    // STEP 4: Look up trigger subscription by webhook path
-    // ============================================================================
-
+    // STEP 4: Look up trigger subscription
     const subscription = await getTriggerSubscriptionByPath(triggerId);
-
     if (!subscription) {
       console.warn(`[Webhook] Trigger not found: ${triggerId}`);
-      return NextResponse.json(
-        { error: "Trigger not found", triggerId },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Trigger not found", triggerId }, { status: 404 });
     }
 
-    console.log(
-      `[Webhook] Found subscription: ${subscription.id} for workflow: ${subscription.workflowId}`
-    );
-
-    // ============================================================================
-    // STEP 4: Validate workflow is ACTIVE
-    // ============================================================================
-
+    // STEP 5: Validate workflow active
     if (subscription.workflow.status !== "ACTIVE") {
-      console.warn(
-        `[Webhook] Workflow not active: ${subscription.workflowId} (status: ${subscription.workflow.status})`
-      );
+      console.warn(`[Webhook] Workflow not active: ${subscription.workflowId}`);
       return NextResponse.json(
         {
           error: "Workflow is not active",
@@ -159,19 +138,20 @@ export async function POST(
       );
     }
 
-    // ============================================================================
-    // STEP 5: Call runWorkflow with idempotency to start execution
-    // ============================================================================
-
-    let executionId: string;
+    // STEP 6: Start idempotent execution
+    let executionId: string | undefined;
     let isDuplicate = false;
-    let lockedByExecution: string | undefined;
-    
     try {
-      // Extract eventId from payload if available (common pattern in webhooks)
-      const eventId = 
-        typeof webhookPayload === "object" && webhookPayload !== null && "id" in webhookPayload
-          ? String((webhookPayload as Record<string, unknown>).id)
+      const payloadRecord =
+        typeof webhookPayload === "object" && webhookPayload !== null
+          ? (webhookPayload as Record<string, unknown>)
+          : {};
+
+      const eventId =
+        typeof payloadRecord.eventId === "string"
+          ? payloadRecord.eventId
+          : typeof payloadRecord.id === "string"
+          ? payloadRecord.id
           : undefined;
 
       const result = await runWorkflowIdempotent({
@@ -187,27 +167,10 @@ export async function POST(
 
       executionId = result.executionId;
       isDuplicate = result.isDuplicate;
-
-      if (isDuplicate) {
-        console.log(
-          `[Webhook] Duplicate event detected. Returning existing execution: ${executionId}`
-        );
-      } else {
-        console.log(
-          `[Webhook] Execution started: ${executionId} for workflow: ${subscription.workflowId}`
-        );
-      }
     } catch (error) {
-      // Handle specific lock errors
       if (error instanceof WorkflowLockedError) {
-        lockedByExecution = error.existingExecutionId;
-
-        console.warn(
-          `[Webhook] Workflow locked by concurrent execution: ${lockedByExecution}`
-        );
-
+        const lockedByExecution = (error as WorkflowLockedError).existingExecutionId;
         const duration = Date.now() - startTime;
-
         return NextResponse.json(
           {
             success: false,
@@ -218,15 +181,12 @@ export async function POST(
             existingExecutionId: lockedByExecution,
             duration: `${duration}ms`,
           },
-          { status: 409 } // Conflict status
+          { status: 409 }
         );
       }
 
       if (error instanceof LockAcquisitionFailedError) {
-        console.warn(`[Webhook] Lock acquisition failed (concurrent request won)`);
-
         const duration = Date.now() - startTime;
-
         return NextResponse.json(
           {
             success: false,
@@ -236,11 +196,10 @@ export async function POST(
             workflowId: subscription.workflowId,
             duration: `${duration}ms`,
           },
-          { status: 409 } // Conflict status
+          { status: 409 }
         );
       }
 
-      // Other errors
       console.error(`[Webhook] Failed to start execution:`, error);
       return NextResponse.json(
         {
@@ -253,29 +212,16 @@ export async function POST(
       );
     }
 
-    // ============================================================================
-    // STEP 6: Update subscription with execution data (skip if duplicate)
-    // ============================================================================
-
+    // STEP 7: Update subscription metadata (best-effort)
     if (!isDuplicate) {
       try {
         await updateSubscriptionAfterExecution(subscription.id, webhookPayload);
-      } catch (error) {
-        // Log but don't fail - execution already started
-        console.warn(`[Webhook] Failed to update subscription:`, error);
+      } catch (err) {
+        console.warn(`[Webhook] Failed to update subscription:`, err);
       }
     }
 
-    // ============================================================================
-    // STEP 7: Return success response
-    // ============================================================================
-
     const duration = Date.now() - startTime;
-
-    console.log(
-      `[Webhook] Success: execution ${executionId} ${isDuplicate ? "(duplicate) " : ""}returned in ${duration}ms`
-    );
-
     return NextResponse.json(
       {
         success: true,
@@ -288,14 +234,8 @@ export async function POST(
       { status: 200 }
     );
   } catch (error) {
-    // ============================================================================
-    // ERROR HANDLING
-    // ============================================================================
-
     console.error(`[Webhook] Error processing webhook:`, error);
-
     const duration = Date.now() - startTime;
-
     return NextResponse.json(
       {
         error: "Internal server error",

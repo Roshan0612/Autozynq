@@ -5,7 +5,6 @@ import { slackNodes } from "./slack";
 import { ifConditionNode } from "./logic";
 import { googleFormsNodes } from "./google_forms";
 import { googleSheetsNodes } from "./google_sheets";
-import { testPassthroughTrigger } from "./test";
 import { webhookTriggerNode } from "./core/webhook.trigger";
 import { manualTriggerNode } from "./core/manual.trigger";
 import { httpRequestNode } from "./core/http.action";
@@ -26,15 +25,15 @@ export const nodeRegistry: Record<string, AutomationNode> = {
   ...googleSheetsNodes,
   ...googleDriveNodes,
   [ifConditionNode.type]: ifConditionNode,
-  [testPassthroughTrigger.type]: testPassthroughTrigger,
-   [webhookTriggerNode.type]: webhookTriggerNode,
-   [manualTriggerNode.type]: manualTriggerNode,
-   [httpRequestNode.type]: httpRequestNode,
-   [logDebugNode.type]: logDebugNode,
-   [generateTextAction.type]: generateTextAction,
+  [webhookTriggerNode.type]: webhookTriggerNode,
+  [manualTriggerNode.type]: manualTriggerNode,
+  [httpRequestNode.type]: httpRequestNode,
+  [logDebugNode.type]: logDebugNode,
+  [generateTextAction.type]: generateTextAction,
   [generateEmailAction.type]: generateEmailAction,
   ...whatsappNodes,
   ...instagramNodes,
+  // Removed test node registration
 };
 
 // Helper to safely retrieve a node definition with error handling.

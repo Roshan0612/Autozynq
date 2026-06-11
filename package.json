@@ -1,5 +1,19 @@
 {
+  "private": true,
+  "scripts": {
+    "dev": "cd autozynq && npm run dev",
+    "build": "cd autozynq && npm run build",
+    "start": "cd autozynq && npm run start",
+    "lint": "cd autozynq && npm run lint",
+    "poll:google-forms": "cd autozynq && npm run poll:google-forms",
+    "poll:google-sheets": "cd autozynq && npm run poll:google-sheets",
+    "test:webhook": "cd autozynq && npx tsx scripts/send_test_webhook.ts",
+    "list:subscriptions": "cd autozynq && npx tsx scripts/list_subscriptions.ts"
+  },
   "dependencies": {
     "googleapis": "^170.1.0"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2"
   }
 }
