@@ -1393,7 +1393,7 @@ function WorkflowBuilderShell(props: WorkflowBuilderClientProps) {
 
           const newConfig = { ...config };
           const mapKey = isSheetsCreate ? "columnValues" : "values";
-          const rawMap = (config as Record<string, any>)[mapKey] as Record<string, unknown> | undefined;
+          const rawMap = ((config as Record<string, unknown>)[mapKey] as Record<string, unknown> | undefined) || undefined;
 
           if (rawMap && triggerId) {
             const converted: Record<string, string> = {};

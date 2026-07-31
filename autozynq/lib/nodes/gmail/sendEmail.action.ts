@@ -172,9 +172,9 @@ export const gmailSendEmailAction: AutomationNode = {
     };
 
     // Resolve all template strings
-    let to = resolveTemplate(cfg.to, previousOutputs);
-    let subject = resolveTemplate(cfg.subject, previousOutputs);
-    let bodyHtml = resolveTemplate(cfg.bodyHtml, previousOutputs);
+    const to = resolveTemplate(cfg.to, previousOutputs);
+    const subject = resolveTemplate(cfg.subject, previousOutputs);
+    const bodyHtml = resolveTemplate(cfg.bodyHtml, previousOutputs);
     const cc = cfg.cc ? resolveTemplate(cfg.cc, previousOutputs) : undefined;
     const bcc = cfg.bcc ? resolveTemplate(cfg.bcc, previousOutputs) : undefined;
 
