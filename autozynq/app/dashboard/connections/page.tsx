@@ -31,12 +31,6 @@ export default function ConnectionsPage() {
     }
   }, [status, router]);
 
-  useEffect(() => {
-    if (status === "authenticated") {
-      fetchConnections();
-    }
-  }, [status]);
-
   const fetchConnections = async () => {
     try {
       setLoading(true);
@@ -50,6 +44,12 @@ export default function ConnectionsPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      fetchConnections();
+    }
+  }, [status]);
 
   const handleDisconnect = async (id: string) => {
     try {
